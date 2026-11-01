@@ -1,0 +1,113 @@
+name: Docker acceptance
+
+on:
+  push:
+    paths:
+      - .github/workflows/acceptance.yml
+      - packages/fugato/**
+      - examples/example_1/**
+      - examples/example_2/**
+      - scripts/acceptance/**
+      - scripts/acceptance-destroy.sh
+      - scripts/package-local.sh
+      - docs/guides/install.md
+  pull_request:
+    paths:
+      - .github/workflows/acceptance.yml
+      - packages/fugato/**
+      - examples/example_1/**
+      - examples/example_2/**
+      - scripts/acceptance/**
+      - scripts/acceptance-destroy.sh
+      - scripts/package-local.sh
+      - docs/guides/install.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packaged-environments:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [compose-browser-mcp, next-nest-postgres]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/fugato/go.mod
+          cache-dependency-path: packages/fugato/go.sum
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Check tools and available disk
+        run: |
+          python3 --version
+          go version
+          node --version
+          npm --version
+          docker version
+          docker compose version
+          df -h /
+      - name: Build and install Linux archive
+        run: |
+          ./scripts/package-local.sh linux amd64 "$RUNNER_TEMP/fugato-packages"
+          version=$(sed -n 's/^const Version = "\([^"]*\)"/\1/p' packages/fugato/internal/version/version.go)
+          test -n "$version"
+          package_name="fugato_${version}_linux_amd64"
+          cd "$RUNNER_TEMP/fugato-packages"
+          sha256sum -c "$package_name.tar.gz.sha256"
+          tar -xzf "$package_name.tar.gz"
+          test -s "$package_name/INSTALL.md"
+          test -s "$package_name/LICENSE"
+          test -s "$package_name/THIRD_PARTY_NOTICES.md"
+          mkdir -p "$RUNNER_TEMP/fugato-install/bin"
+          install -m 755 "$package_name/fugato" "$package_name/fugato-mcp" "$RUNNER_TEMP/fugato-install/bin/"
+          test -x "$RUNNER_TEMP/fugato-install/bin/fugato"
+          test -x "$RUNNER_TEMP/fugato-install/bin/fugato-mcp"
+      # The disposable runner keeps no Docker image or npm cache between jobs.
+      # The suite tears down each fixture group before starting the next one.
+      - name: Run packaged preparation CLI and MCP acceptance
+        if: matrix.suite == 'compose-browser-mcp'
+        run: |
+          python3 scripts/acceptance/prepare.py \
+            --binary "$RUNNER_TEMP/fugato-install/bin/fugato" \
+            --mcp-binary "$RUNNER_TEMP/fugato-install/bin/fugato-mcp"
+      - name: Verify runtime destruction and retained-data isolation
+        if: matrix.suite == 'compose-browser-mcp'
+        run: ./scripts/acceptance-destroy.sh "$RUNNER_TEMP/fugato-install/bin/fugato"
+      - name: Run packaged Compose, browser, and MCP acceptance
+        if: matrix.suite == 'compose-browser-mcp'
+        run: |
+          python3 scripts/acceptance/compose.py \
+            --binary "$RUNNER_TEMP/fugato-install/bin/fugato" \
+            --mcp-binary "$RUNNER_TEMP/fugato-install/bin/fugato-mcp" \
+            --artifacts "$RUNNER_TEMP/fugato-acceptance"
+      - name: Run packaged Next, Nest, and PostgreSQL acceptance
+        if: matrix.suite == 'next-nest-postgres'
+        run: |
+          python3 scripts/acceptance/next_nest_postgres.py \
+            --binary "$RUNNER_TEMP/fugato-install/bin/fugato" \
+            --artifacts "$RUNNER_TEMP/fugato-acceptance"
+      - name: Show Docker disk usage
+        if: always()
+        run: docker system df
+      - name: Save bounded failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fugato-acceptance-failure-${{ matrix.suite }}
+          path: |
+            ${{ runner.temp }}/fugato-acceptance/environment.json
+            ${{ runner.temp }}/fugato-acceptance/results.json
+            ${{ runner.temp }}/fugato-acceptance/summary.json
+            ${{ runner.temp }}/fugato-acceptance/commands.log
+            ${{ runner.temp }}/fugato-acceptance/daemon.log
+          if-no-files-found: ignore
+          retention-days: 5

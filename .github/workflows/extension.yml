@@ -1,0 +1,58 @@
+name: Extension
+
+on:
+  push:
+    paths:
+      - .github/workflows/extension.yml
+      - packages/cursor-extension/**
+      - packages/fugato/internal/control/**
+      - packages/fugato/internal/fugato/**
+      - docs/guides/editor-extension.md
+  pull_request:
+    paths:
+      - .github/workflows/extension.yml
+      - packages/cursor-extension/**
+      - packages/fugato/internal/control/**
+      - packages/fugato/internal/fugato/**
+      - docs/guides/editor-extension.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/cursor-extension
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: packages/cursor-extension/package-lock.json
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Audit build dependencies
+        run: npm audit --audit-level=high
+      - name: Typecheck
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+      - name: VS Code extension host test
+        run: xvfb-run -a npm run test:integration
+      - name: Build VSIX
+        run: npm run package
+      - name: Upload local VSIX artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fugato-vsix
+          path: packages/cursor-extension/*.vsix
+          if-no-files-found: error
+          retention-days: 14

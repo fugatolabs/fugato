@@ -1,0 +1,41 @@
+version: 1
+start:
+  commands: [web, worker]
+commands:
+  web:
+    mode: service
+    host:
+      argv: [npm, run, dev]
+      env:
+        PORT: '${FUGATO_PORT_website}'
+        ADMIN_PORT: '${FUGATO_PORT_admin}'
+  worker:
+    mode: service
+    host:
+      argv: [node, worker.cjs]
+  test:
+    mode: task
+    host:
+      argv: [npm, test]
+  console:
+    mode: interactive
+    host:
+      argv: [node, -i]
+endpoints:
+  website:
+    command: web
+    port: 0
+    protocol: http
+    browser: true
+  admin:
+    command: web
+    port: 0
+    protocol: http
+    browser: true
+checks:
+  ready:
+    http:
+      endpoint: website
+      path: /health
+  tests:
+    command: test

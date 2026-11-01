@@ -1,0 +1,45 @@
+services:
+  web:
+    build: .
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://todo:todo@db:5432/todo
+    ports:
+      - "127.0.0.1::3000"
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo
+      POSTGRES_DB: todo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo -d todo"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+  browser:
+    profiles: [test]
+    image: mcr.microsoft.com/playwright:v1.63.0-noble
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      BASE_URL: http://web:3000
+    command: ["npm", "run", "test:browser"]
+    depends_on:
+      web:
+        condition: service_healthy
+volumes:
+  postgres_data:

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fugato To-dos</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="card">
+      <div class="eyebrow">FUGATO TEST STACK</div>
+      <h1>Things to do</h1>
+      <p class="intro">A tiny full-stack app for checking each runtime.</p>
+      <form id="todo-form">
+        <label for="title">New task</label>
+        <div class="form-row">
+          <input id="title" name="title" placeholder="What needs doing?" maxlength="200" required autofocus>
+          <button type="submit">Add task</button>
+        </div>
+      </form>
+      <p id="error" role="alert" hidden></p>
+      <div class="list-heading"><h2>Your tasks</h2><span id="count"></span></div>
+      <p id="empty" class="empty">No tasks yet. Add one above.</p>
+      <ul id="todos"></ul>
+    </main>
+  </body>
+</html>

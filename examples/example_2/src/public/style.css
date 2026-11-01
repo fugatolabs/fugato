@@ -1,0 +1,24 @@
+:root { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; color: #23313b; background: #edf1ef; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 8vh 20px; }
+.card { max-width: 650px; min-height: 380px; margin: auto; padding: 40px; background: white; border-radius: 18px; box-shadow: 0 18px 55px #17332913; }
+.eyebrow { color: #39866d; font-size: 11px; font-weight: 800; letter-spacing: .15em; }
+h1 { font-size: 38px; letter-spacing: -.04em; margin: 12px 0 4px; }
+.intro { color: #65747b; margin: 0 0 32px; }
+label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.form-row { display: flex; gap: 10px; }
+input[name=title] { flex: 1; min-width: 0; border: 1px solid #cad5d0; border-radius: 9px; padding: 12px 13px; font: inherit; }
+button { border: 0; border-radius: 9px; background: #238363; color: white; padding: 12px 18px; font: inherit; font-weight: 650; cursor: pointer; }
+button:hover { background: #176b50; }
+#error { color: #a42323; }
+.list-heading { display: flex; justify-content: space-between; align-items: baseline; margin-top: 34px; }
+h2 { font-size: 16px; }
+#count, .empty { color: #78878b; font-size: 13px; }
+ul { list-style: none; padding: 0; margin: 0; }
+li { display: flex; align-items: center; gap: 13px; padding: 14px 0; border-top: 1px solid #e8edeb; }
+li span { flex: 1; overflow-wrap: anywhere; }
+li span.completed { text-decoration: line-through; color: #89969a; }
+li input { accent-color: #238363; width: 17px; height: 17px; }
+li button.remove { background: transparent; color: #9a4e4e; padding: 5px; font-size: 13px; }
+li button.remove:hover { text-decoration: underline; }
+@media (max-width: 480px) { .card { padding: 25px; } .form-row { flex-direction: column; } }

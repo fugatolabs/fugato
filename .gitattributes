@@ -1,0 +1,2 @@
+# Preserve upstream legal notices verbatim, including their whitespace.
+third_party/** -whitespace

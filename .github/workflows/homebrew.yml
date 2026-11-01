@@ -1,0 +1,157 @@
+name: Homebrew
+
+on:
+  push:
+    paths: ['.github/workflows/homebrew.yml', '.github/workflows/release.yml', 'scripts/*homebrew*.py', 'scripts/build-release.sh']
+  pull_request:
+    paths: ['.github/workflows/homebrew.yml', '.github/workflows/release.yml', 'scripts/*homebrew*.py', 'scripts/build-release.sh']
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag to install and publish to the tap
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homebrew-${{ github.event_name == 'pull_request' && github.ref || 'release' }}
+  cancel-in-progress: false
+
+jobs:
+  generator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - run: python3 scripts/test-homebrew-formula.py
+
+  prepare:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: generator
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Require a public, published release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?', tag):
+              raise SystemExit('Expected a release tag such as v0.0.1')
+          def gh(*args):
+              return json.loads(subprocess.check_output(['gh', *args]))
+          repo = gh('api', 'repos/fugatolabs/fugato')
+          if repo['private']:
+              raise SystemExit('Homebrew requires public release downloads; the source repository is private')
+          release = gh('release', 'view', tag, '--repo', 'fugatolabs/fugato', '--json', 'isDraft,tagName')
+          if release['isDraft'] or release['tagName'] != tag:
+              raise SystemExit('Publish the release before updating Homebrew')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'tag={tag}\n')
+          PY
+      - name: Download and verify the released archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          mkdir -p release formula
+          gh release download "$RELEASE_TAG" --repo fugatolabs/fugato --dir release \
+            --pattern checksums.txt --pattern "fugato_${RELEASE_TAG#v}_*.tar.gz"
+          python3 scripts/generate-homebrew-formula.py release --version "${RELEASE_TAG#v}" > formula/fugato.rb
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: homebrew-formula
+          path: formula/fugato.rb
+          if-no-files-found: error
+          retention-days: 30
+
+  install:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: homebrew-formula
+          path: ${{ runner.temp }}/homebrew-tap/Formula
+      - name: Add Linuxbrew to PATH
+        if: runner.os == 'Linux'
+        run: echo /home/linuxbrew/.linuxbrew/bin >> "$GITHUB_PATH"
+      - name: Install from a temporary tap and test both binaries
+        run: |
+          cd "$RUNNER_TEMP/homebrew-tap"
+          git init
+          git -c user.name=Homebrew -c user.email=homebrew@example.invalid add Formula/fugato.rb
+          git -c user.name=Homebrew -c user.email=homebrew@example.invalid commit -m 'Test Fugato formula'
+          brew tap --custom-remote fugatolabs/tap "$RUNNER_TEMP/homebrew-tap"
+          brew install --formula fugatolabs/tap/fugato
+          brew test fugatolabs/tap/fugato
+          brew audit --strict fugatolabs/tap/fugato
+          test -f "$(brew --prefix fugato)/share/fugato/NOTICE"
+          test -f "$(brew --prefix fugato)/share/fugato/skills/fugato-workflow/SKILL.md"
+          test -f "$(brew --prefix fugato)/share/fugato/setup-agent.mjs"
+
+  publish:
+    needs: [prepare, install]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: homebrew-formula
+          path: formula
+      - name: Update the public tap after all four installs pass
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          python3 - <<'PY'
+          import base64, json, os, pathlib, subprocess
+          if not os.environ.get('GH_TOKEN'):
+              raise SystemExit('Set HOMEBREW_TAP_TOKEN to a token with Contents: write on fugatolabs/homebrew-tap')
+          def gh(*args):
+              return json.loads(subprocess.check_output(['gh', *args]))
+          repo = gh('api', 'repos/fugatolabs/homebrew-tap')
+          if repo['private']:
+              raise SystemExit('The Homebrew tap must be public before publication')
+          endpoint = 'repos/fugatolabs/homebrew-tap/contents/Formula/fugato.rb'
+          result = subprocess.run(['gh', 'api', endpoint], capture_output=True, text=True)
+          payload = {
+              'message': 'Update Fugato to ' + os.environ['RELEASE_TAG'],
+              'content': base64.b64encode(pathlib.Path('formula/fugato.rb').read_bytes()).decode(),
+              'branch': repo['default_branch'],
+          }
+          if result.returncode == 0:
+              current = json.loads(result.stdout)
+              if base64.b64decode(current['content']) == base64.b64decode(payload['content']):
+                  print('Tap already contains this formula')
+                  raise SystemExit(0)
+              payload['sha'] = current['sha']
+          elif 'HTTP 404' not in result.stderr:
+              raise SystemExit(result.stderr)
+          subprocess.run(['gh', 'api', '--method', 'PUT', endpoint, '--input', '-'],
+                         input=json.dumps(payload), text=True, check=True, stdout=subprocess.DEVNULL)
+          print('Published: brew install fugatolabs/tap/fugato')
+          PY

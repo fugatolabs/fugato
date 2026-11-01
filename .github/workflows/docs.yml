@@ -1,0 +1,26 @@
+name: Documentation export
+on:
+  pull_request:
+    paths: ['docs/**', 'scripts/*website-docs.py', 'packages/fugato/**', 'packages/cursor-extension/resources/fugato.schema.json', '.github/workflows/docs.yml']
+  push:
+    branches: [main]
+    paths: ['docs/**', 'scripts/*website-docs.py', 'packages/fugato/**', 'packages/cursor-extension/resources/fugato.schema.json', '.github/workflows/docs.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: packages/fugato/go.mod
+          cache-dependency-path: packages/fugato/go.sum
+      - run: python3 scripts/test-export-website-docs.py
+      - working-directory: packages/fugato
+        run: go build -o "$RUNNER_TEMP/fugato-docs-cli" ./cmd/fugato
+      - run: python3 scripts/export-website-docs.py --output "$RUNNER_TEMP/docs.json" --cli "$RUNNER_TEMP/fugato-docs-cli"

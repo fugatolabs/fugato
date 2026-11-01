@@ -1,0 +1,18 @@
+version: 1
+prepare:
+  files:
+    - path: .env
+      required: true
+start:
+  services: [web]
+endpoints:
+  website:
+    service: web
+    port: 3000
+    protocol: http
+    browser: true
+checks:
+  ready:
+    http:
+      endpoint: website
+      path: /health

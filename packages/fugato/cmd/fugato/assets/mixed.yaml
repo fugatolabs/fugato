@@ -1,0 +1,34 @@
+# Example for an existing compose.yaml with db, plus an existing npm app.
+# Change scripts, paths, and container ports to match your repository.
+version: 1
+start:
+  services: [db]
+  commands: [web]
+endpoints:
+  database:
+    service: db
+    port: 5432
+    protocol: tcp
+    browser: false
+  website:
+    command: web
+    port: 0
+    protocol: http
+    browser: true
+commands:
+  web:
+    mode: service
+    host:
+      cwd: .
+      argv: [npm, run, dev]
+      env:
+        DATABASE_URL: 'postgres://localhost:${FUGATO_PORT_database}/app'
+        PORT: '${FUGATO_PORT_website}'
+  test:
+    mode: task
+    host:
+      cwd: .
+      argv: [npm, test]
+checks:
+  tests:
+    command: test

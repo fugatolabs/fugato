@@ -1,0 +1,27 @@
+# Example for an app with existing npm scripts. Replace script names and paths
+# with commands already present in your project before selecting startup work.
+version: 1
+start:
+  commands: [web]
+endpoints:
+  website:
+    command: web
+    port: 0
+    protocol: http
+    browser: true
+commands:
+  web:
+    mode: service
+    host:
+      cwd: .
+      argv: [npm, run, dev]
+      env:
+        PORT: '${FUGATO_PORT_website}'
+  test:
+    mode: task
+    host:
+      cwd: .
+      argv: [npm, test]
+checks:
+  tests:
+    command: test

@@ -1,0 +1,224 @@
+{
+  "name": "fugato",
+  "displayName": "Fugato",
+  "description": "Manage local worktree environments and open previews in your browser.",
+  "version": "0.0.1",
+  "publisher": "fugato-local",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.116.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Fugato starts project workloads. Trust this workspace to use Fugato."
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p .",
+    "check": "tsc -p . --noEmit",
+    "test": "npm run compile && node --test test/*.test.cjs",
+    "test:integration": "npm run compile && node scripts/test-host.cjs",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package --no-dependencies --allow-missing-repository"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "fugato",
+          "title": "Fugato",
+          "icon": "resources/fugato.svg"
+        }
+      ]
+    },
+    "views": {
+      "fugato": [
+        {
+          "id": "fugato.sidebar",
+          "type": "webview",
+          "name": "Fugato",
+          "icon": "resources/fugato.svg"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "fugato.createEnvironment", "title": "Create Environment…", "category": "Fugato" },
+      { "command": "fugato.createRuntime", "title": "Create Selected Environment", "category": "Fugato" },
+      { "command": "fugato.chooseDirectory", "title": "Choose Project Directory…", "category": "Fugato" },
+      { "command": "fugato.restartRuntime", "title": "Restart Environment", "category": "Fugato" },
+      { "command": "fugato.createWorktree", "title": "Create Worktree…", "category": "Fugato" },
+      { "command": "fugato.removeWorktree", "title": "Remove Worktree", "category": "Fugato" },
+      { "command": "fugato.openWorktree", "title": "Open Worktree Folder", "category": "Fugato" },
+      {
+        "command": "fugato.refresh",
+        "title": "Refresh",
+        "category": "Fugato",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "fugato.selectWorktree",
+        "title": "Select Worktree",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.startRuntime",
+        "title": "Start Environment",
+        "category": "Fugato",
+        "icon": "$(play)"
+      },
+      {
+        "command": "fugato.stopRuntime",
+        "title": "Stop Environment (keep data)",
+        "category": "Fugato",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "fugato.destroyRuntime",
+        "title": "Destroy Environment",
+        "category": "Fugato",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "fugato.openPreview",
+        "title": "Open Preview",
+        "category": "Fugato",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "fugato.copyPreviewLink",
+        "title": "Copy Preview Link",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.showLogs",
+        "title": "Show Logs",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.verifyHTTP",
+        "title": "Verify HTTP",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.verifyBrowser",
+        "title": "Verify Browser",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.showLatestVerification",
+        "title": "Show Latest Verification",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.openScreenshot",
+        "title": "Open Screenshot",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.startDaemon",
+        "title": "Start Daemon",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.setup",
+        "title": "Show Setup Instructions",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.selectProject",
+        "title": "Select Project",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.checkSetup",
+        "title": "Check Setup",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.editConfiguration",
+        "title": "Edit Configuration",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.showPorts",
+        "title": "View Ports",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.runCommand",
+        "title": "Run Command",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.runCheck",
+        "title": "Run Check",
+        "category": "Fugato"
+      },
+      {
+        "command": "fugato.openService",
+        "title": "Open Service",
+        "category": "Fugato",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "fugato.copyServiceAddress",
+        "title": "Copy Service Address",
+        "category": "Fugato",
+        "icon": "$(copy)"
+      }
+    ],
+    "configuration": {
+      "title": "Fugato",
+      "properties": {
+        "fugato.executablePath": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Absolute path to the installed Fugato CLI; otherwise use a trusted host PATH entry."
+        },
+        "fugato.stateDirectory": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Absolute daemon state directory. Otherwise FUGATO_STATE_DIR or platform default."
+        },
+        "fugato.apiPort": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 65535,
+          "scope": "application",
+          "description": "Local daemon API port. Zero uses FUGATO_API_PORT or 46655."
+        }
+      }
+    },
+    "yamlValidation": [
+      {
+        "fileMatch": ".fugato.yaml",
+        "url": "./resources/fugato.schema.json"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "20.19.9",
+    "@types/vscode": "1.116.0",
+    "@vscode/test-electron": "2.5.2",
+    "@vscode/vsce": "4.0.0",
+    "typescript": "5.9.2"
+  }
+}

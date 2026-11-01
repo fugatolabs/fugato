@@ -1,0 +1,8 @@
+{
+  "name": "fugato-native-example",
+  "private": true,
+  "scripts": {
+    "dev": "node server.cjs",
+    "test": "node --test server.test.cjs"
+  }
+}

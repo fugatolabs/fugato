@@ -1,0 +1,235 @@
+# Running your application with Fugato
+
+Use this guide to configure and verify an application with Fugato. Developers
+and AI agents follow the same requirements.
+
+Use the principles below to prepare an application, and the [current limitations](#current-limitations-and-available-options) to understand unsupported cases and available options. The [agent workflow skill](../../skills/fugato-workflow/SKILL.md) applies this guide through the CLI and MCP.
+
+The target is an application that can start from a fresh worktree, run alongside another copy, be verified, and stop without changing the other copy. No checklist can guarantee every application will run without issues. Unsupported requirements must be identified before startup rather than silently worked around.
+
+“Required” below means necessary for this compatibility target. Some requirements apply only when the application uses the relevant capability. Recommendations improve the development experience but should not automatically become startup blockers.
+
+## Repository and configuration
+
+1. **Make the committed repository sufficient to describe the environment. — Required**
+
+   Commit Compose files, Dockerfiles, dependency manifests and lockfiles, scripts, migration definitions, and non-secret configuration templates. A new Git worktree starts from committed files; it does not receive another checkout's edits, untracked files, or ignored files. Declare any Git submodules, Git LFS downloads, generated inputs, or private packages that preparation requires.
+
+2. **Make paths portable between worktrees. — Required**
+
+   Use paths relative to the project or worktree, not a developer's home directory or original checkout. Build contexts, Dockerfiles, and bind mounts must stay within the selected Git worktree, including after symlink resolution. In a monorepo, a sibling directory within that worktree can be used. Do not assume `.git` is a directory: linked worktrees commonly have a `.git` file.
+
+3. **Keep container definitions in Compose and development intent in Fugato configuration. — Required when using those capabilities**
+
+   Compose defines images, services, dependencies, mounts, networks, health checks, and container settings. `.fugato.yaml` selects startup work, named endpoints, reusable commands, and named checks. Declare the intended project explicitly when a monorepo contains several environments.
+
+   `.fugato.yaml` is optional for basic Compose startup. Without it, Fugato starts unprofiled services and their dependencies, but infers no browser preview or application check. With explicit configuration, `start` is authoritative; declaring an endpoint alone does not select its service for startup. Use `fugato schema` for the installed version and run `fugato doctor` after configuration changes.
+
+4. **Declare prerequisites and keep builds repeatable. — Required**
+
+   Record supported Docker/Compose, operating system, CPU architecture, and language-runtime versions. Commit lockfiles and use deterministic dependency installation. Prefer pinned image versions, or digests where stricter repeatability is needed. Document network access, registry authentication, licences, and other inputs needed for the first build. Dependencies built on macOS must not be assumed usable in a Linux container.
+
+## Local files, environment variables, and secrets
+
+5. **Inventory every required local input. — Required**
+
+   For each ignored file, record its destination, purpose, whether it is required, how it is obtained or generated, and whether it contains secrets. Examples include `.env`, `.env.local`, development certificates, and local service configuration. Use committed templates with safe defaults where possible. Missing required inputs should produce an actionable error before expensive startup.
+
+   **Current behavior:** Fugato can prepare declared files and directories from an explicitly selected source project in the same Git repository. Add only required local inputs to `prepare.files`; source values never appear in reports. See the [preparation guide](preparation.md). The operation does not install dependencies or rewrite environment values. Follow principles 5 and 6.
+
+6. **Copy only declared inputs, and preserve worktree ownership. — Required when copying local inputs**
+
+   Choose the source directory explicitly within a checkout of the same Git repository. Copy an allowlisted file once; do not overwrite an existing destination or follow a source symlink into an unrelated location silently. Use appropriate file permissions; Fugato preparation restricts copied files to the current user, retaining only the owner's executable bit. Do not copy all ignored files, credentials from arbitrary home directories, `node_modules`, database directories, or build caches indiscriminately. Prefer independent environment files over shared writable symlinks.
+
+7. **Specify how each variable reaches its consumer. — Required**
+
+   Distinguish Compose interpolation, container environment variables, application-loaded dotenv files, and host-process environment variables. A project `.env` supplies Compose interpolation; it does not automatically inject every value into every container. Use explicit `environment` or service `env_file` declarations where appropriate. Document precedence, required values, safe defaults, and whether changes require restarting a process or rebuilding a frontend. [Docker interpolation reference](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)
+
+   **Current Fugato behavior:** the Compose subprocess receives an allowlist of Docker/system environment variables, not arbitrary exports from the invoking terminal. Do not depend on `export APP_SECRET=...` before `fugato up`. Host commands have a different execution environment; configure their application values explicitly rather than relying on the daemon's inherited environment. Fugato's `${FUGATO_*}` expansion applies to supported host command arguments/environment, not arbitrary text in copied files.
+
+8. **Keep secret values private and development destinations explicit. — Required**
+
+   Do not commit real secrets or embed them in browser bundles, image layers, CLI arguments, diagnostics, MCP responses, or generated reports. Use development credentials and document their acquisition and refresh. Sharing a credential does not imply that sharing the associated database, tenant, or queue is safe. A missing development value must not silently select production.
+
+   **Current limitation ([FG-003](#fg-003-compose-secrets-and-build-credentials)):** Fugato currently rejects Compose secrets/configs and build secret/SSH features. If the application requires these mechanisms, report that it cannot run unchanged under Fugato. Keep its existing secret handling; use an alternative only if it meets the application's requirements.
+
+## Ports, addresses, and browser access
+
+9. **Separate internal listening ports from host-facing ports. — Required**
+
+   Multiple containers can listen on the same internal port. Keep service-to-service addresses such as `api:3001` and `db:5432` stable inside Compose. Fugato remaps published host ports to dynamic loopback bindings. Do not put the original host port into another service's connection URL and expect remapping to rewrite that string.
+
+   Native host servers must accept a configured port. Use a declared endpoint and the allocated `FUGATO_PORT_<endpoint>` value where supported. Fixed native ports cannot guarantee concurrent worktrees. Debugger ports, metrics listeners, secondary servers, UDP sockets, Unix sockets, and PID/lock files need the same collision analysis as the main HTTP listener.
+
+10. **Choose addresses according to where the caller runs. — Required**
+
+   A container's `localhost` refers to that container. Container-to-container traffic should use Compose service DNS. Host tools should use current bindings from Fugato. Browser code should use the preview origin or an explicitly configured browser-accessible endpoint; browsers cannot resolve a private Compose service name. In hybrid setups, container-to-host access needs a deliberate, platform-tested route and binding; it is not solved by allocating a port alone.
+
+11. **Bind servers on an interface reachable by their intended callers. — Required**
+
+   A server reached through Docker's published port generally needs to listen on the container interface, commonly `0.0.0.0`, rather than only container loopback. Host-only processes should normally listen on loopback. Fugato publishes Compose ports on `127.0.0.1`; a phone, another computer, or an external webhook provider cannot reach that address on your machine.
+
+12. **Make public URLs configurable. — Required for web applications**
+
+   Avoid hardcoded host ports, original-worktree URLs, and build-time frontend URLs that accidentally point at another environment. Prefer same-origin relative browser requests when possible. Configure redirects, API origins, WebSocket/HMR URLs, and any canonical base URL consistently. Use the runtime's named preview for HTTP browsing; retrieve direct bindings when a tool needs them.
+
+   Named HTTP preview URLs are stable for the same project identity and proxy configuration. Direct ports can change after restart. Moving a worktree/project changes its identity; do not promise that its old URL or retained data follows automatically.
+
+13. **Support the actual preview hostname and proxy behavior. — Required for web applications**
+
+   Configure application host validation, development-server allowed origins, CORS, and CSRF checks for the intended preview endpoints. Do not disable these protections globally. Test redirects and frameworks' handling of forwarded headers against the real Fugato URL. WebSocket upgrades are supported and tested in Fugato, but application-specific authentication, origin checks, streaming, SSE, and timeout behavior still need verification.
+
+14. **Isolate browser state and account for external authentication. — Required when applicable**
+
+   Prefer host-scoped session cookies. Broad cookie domains can share state between preview hosts; cookie isolation is not the same as port isolation. Test cookies, browser storage, logout, and service-worker caching across two worktrees. [MDN cookie guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies)
+
+   OAuth/OIDC callbacks, WebAuthn relying-party IDs, third-party origin allowlists, HTTPS-only integrations, and external webhooks may need provider-side development configuration or an explicitly supported tunnel. Fugato currently provides no automatic public tunnel or TLS termination. HTTPS endpoints use their direct binding and application TLS configuration; do not assume the HTTP preview behavior applies to them.
+
+## State and concurrent environments
+
+15. **Keep mutable local state scoped to the worktree. — Required**
+
+   Use ordinary Compose project-scoped named volumes and networks. Do not use fixed `container_name`, external/shared volumes, or explicitly shared resource names; current Fugato validation rejects them. Bind-mounted writable state must live inside the correct worktree. Native applications should use their configured worktree-specific location or `FUGATO_DATA_DIR`, rather than a common home-directory cache/database by default.
+
+16. **Isolate external state as well as containers. — Required when applicable**
+
+   Consider database/schema names, Redis key prefixes, queue names, consumer groups, object-store prefixes, search indexes, tenant IDs, locks, scheduled jobs, and test accounts. Two isolated Compose projects can still interfere through the same cloud resource. Namespace external resources or explicitly designate a shared read-only dependency. Consumers must not accidentally steal another worktree's jobs.
+
+17. **Make migrations, seeds, and resets explicit. — Required for stateful applications**
+
+   A fresh database must be initializable from committed migrations. State whether initialization happens in Compose, application startup, or a named Fugato task, and ensure it completes before dependent traffic. Fugato startup commands run after Compose startup, so a migration needed before a container becomes ready cannot simply be placed in a later command without considering that dependency. Handle migration concurrency and partial failure. Seeds should be repeatable or clearly marked as destructive.
+
+   Normal start/stop must retain data. Resetting a worktree must target only its exact resources and require an explicit operation. Switching branches may introduce incompatible schemas; document whether to migrate, restore, or recreate that environment's database.
+
+18. **Control external side effects in development. — Required when applicable**
+
+   Use sandboxes, emulators, or explicit opt-ins for email, payments, SMS, push notifications, deployments, scheduled jobs, and third-party mutations. Starting a second worktree must not double-send jobs or trigger production actions. Fugato cannot infer or contain these side effects from a Compose network alone.
+
+## Startup, commands, and shutdown
+
+19. **Declare dependencies and real readiness. — Required**
+
+   Define Compose dependency relationships and health checks, using readiness conditions where needed. “Process started” is not “ready.” Health endpoints should cover the prerequisites needed for meaningful use without destructive operations. Applications must also tolerate dependencies restarting after initial startup. [Docker startup-order reference](https://docs.docker.com/compose/how-tos/startup-order/)
+
+   Give Fugato named checks for the intended workflow. Static `doctor` success, successful `up`, HTTP readiness, and a passing functional test are different claims. A UI is not mandatory: workers, libraries, and batch projects can use command checks.
+
+20. **Run services in the foreground and handle termination. — Required**
+
+   A supervised service must not daemonize itself and detach from its owner. Forward termination signals through entrypoint scripts; use `exec` or appropriate process management. Stop child servers/watchers, close listeners and database pools, and allow bounded shutdown. Test that stopping one worktree leaves no orphan process occupying its port and does not signal another environment.
+
+21. **Make task commands explicit, repeatable, and correctly classified. — Required**
+
+   Separate persistent services, finite tasks, and interactive commands. Use argument arrays; shell expansion is not implicit. If a shell is needed, declare it and keep the script in the repository. Startup tasks should be safe to retry after interruption. Return meaningful exit codes, fail on real errors, and avoid prompts in noninteractive tasks.
+
+   Current executors are `host`, `run` (a fresh Compose container with `--no-deps`), and `exec` (an existing container). Persistent container services belong in Compose; `mode: service` commands use the host executor. Noninteractive command requests currently have a five-minute limit, and container `exec` requires a `timeout` executable. Do not promise an unsupported long-running build or interactive flow through the finite-task interface.
+
+22. **Plan for unavailable dependencies and partial failure. — Recommended; required for a resilient workflow**
+
+   Report absent Docker, missing credentials/files, unavailable registries, invalid configuration, unhealthy dependencies, and port collisions with actionable messages. Use bounded application retries where appropriate. Keep partial initialization recoverable. Fugato cleans up resources started by a failed startup attempt while retaining project data; application tasks must not assume arbitrary external mutations are rolled back.
+
+## Development experience and resources
+
+23. **Treat source synchronization and automatic reload as separate requirements. — Required if hot reload is promised**
+
+   Mount/synchronize the source actually used by the running process, then enable the framework's watcher. Verify real edits through the browser or API. Read-only source mounts still expose host edits, but generated files need separate writable locations. Some host/VM file-sharing setups need polling. Include tools required by the watcher: our Nest example needs `ps` from `procps` to stop its previous child process correctly.
+
+   A backend process restart does not automatically refetch data in every open browser. Document whether users should refresh, retry, or use an application-specific live-update mechanism.
+
+24. **Define dependency and generated-file lifecycles. — Required**
+
+   Keep dependencies appropriate for the container OS/architecture and runtime version. Choose image-installed dependencies or a container-managed dependency volume, then document initialization and lockfile-change handling. An existing dependency volume can mask newer dependencies in a rebuilt image; source watchers do not reliably install or reload packages automatically.
+
+   Keep `.next`, compiled output, generated clients, and other mutable outputs isolated. Ensure runtime users can write the required paths. Changing a Dockerfile, mount, startup command, environment, or build-time variable may require rebuilding or recreating a service rather than a source reload. The included examples install dependencies in their images; configure a dependency volume explicitly if your application needs one.
+
+25. **Make diagnostics usable and resource consumption deliberate. — Recommended**
+
+   Send service logs to stdout/stderr and identify service, operation, and failure without dumping environment contents or credentials. Avoid indefinite noisy loops and unbounded local logs. State expected CPU, memory, disk, and first-build cost. Apply sensible Compose limits when several worktrees will run. Fugato preserves declared limits but imposes no default Compose CPU/memory caps; retained volumes consume disk after shutdown.
+
+   `fugato down` removes the stack's containers and Compose networks while retaining named volumes, images, and build cache. Full data deletion is a separate, explicit operation; see [FG-004](#fg-004-retained-data-and-disk-cleanup).
+
+26. **Declare exceptional platform requirements early. — Required when applicable**
+
+   GPU/device access, host networking, privileged containers, Docker socket access, additional host namespaces/capabilities, external build contexts, and build credentials may conflict with current validation. Read-only volume mounts outside the worktree are not automatically exempt. Do not instruct an agent to bypass a rejected configuration.
+
+   Native/hybrid execution has additional obligations: install compatible host tools, honor assigned ports, separate writable paths, and handle platform-specific host/container routing. Fugato does not sandbox host commands. Desktop/mobile simulators, device debugging, GUI automation, multicast discovery, public ingress, and specialized protocols need explicit capability assessment; an HTTP preview alone does not provide them.
+
+## Automation and acceptance
+
+27. **Use one repeatable workflow for manual and automated operation. — Required for agent support**
+
+   Document how to discover the project, prepare inputs, start, verify, inspect logs, stop, and deliberately reset it. Declare reusable operations in configuration where supported. Use the installed schema and actual project service names. Distinguish static validation, successful startup, and passing application checks. Share diagnostic names, paths, status, and remedies without secret values.
+
+   Use supported CLI operations when an equivalent MCP operation is unavailable; see [FG-005](#fg-005-agent-onboarding-and-skill-distribution). The [agent skill](../../skills/fugato-workflow/SKILL.md) describes tool selection and verification. For environment values, follow [FG-002](#fg-002-worktree-specific-environment-values); a variable name alone does not establish how its value should change.
+
+28. **Prove compatibility with two concurrent worktrees. — Required acceptance gate**
+
+   Use the following checks for every application that claims Fugato compatibility. Apply optional rows only when the application uses that capability.
+
+   | Check | Expected result |
+   | --- | --- |
+   | Fresh worktree, no caches or ignored files | Declared preparation succeeds, or reports exactly which required input is missing. |
+   | First build and startup | Selected services/tasks start from documented inputs and pass real readiness checks. |
+   | Two worktrees running together | Distinct host bindings and isolated mutable local/external state; no accidental shared consumer or job. |
+   | Source edit in A | A reloads as documented; B is unchanged. Test backend responses and frontend browser refresh separately. |
+   | Dependency or lockfile change in A | The documented install/rebuild path works; B's dependencies remain unchanged. |
+   | Environment change in A | Only A changes after the required restart/rebuild; copied files in B remain untouched. |
+   | Preview behavior | Browser APIs, allowed origins, redirects, cookies, authentication, and WebSockets work at the actual preview URL. |
+   | Stop A while B is busy | A's processes/routes stop; B remains usable. |
+   | Restart A | A recovers retained data and its expected identity; callers do not depend on its former direct port. |
+   | Failure during startup or migration | No false success or unrelated cleanup; retry has a documented recovery path. |
+   | Invalid secret, missing file, occupied native port, unavailable dependency | Clear failure without exposing secret values or silently targeting another environment. |
+   | Explicit reset of A | Only A's selected data is removed; B and shared services remain intact. |
+   | Supported host platforms/architectures | Build, mounts, permissions, watchers, networking, and shutdown behave as documented. |
+
+## Responsibility boundary
+
+The application developer supplies portable configuration, meaningful health checks, configurable addresses, repeatable tasks, and clear ownership of state. Fugato supplies supported runtime isolation, port allocation, preview routing, lifecycle operations, and actionable diagnostics. The agent maps project intent onto that contract and verifies the result. Unsupported preparation steps or infrastructure should be reported as a Fugato capability gap rather than disguised as a developer setup mistake.
+
+Native and hybrid scenarios require their own validation; a Compose-only acceptance run does not prove those capabilities for an application.
+
+## Current limitations and available options
+
+These IDs identify compatibility limitations for both humans and agents. They
+are reference labels, not error codes emitted by Fugato or promises of future features.
+
+### FG-001: Local-file preparation
+
+Fugato prepares explicitly declared project-relative files and directories with
+`fugato prepare` or MCP `prepare_worktree`. Both source and target projects must
+be selected explicitly and belong to the same Git repository. Existing target
+files are preserved; missing required inputs block preparation, while optional
+missing inputs are reported. Symlinks and `.git` paths are prohibited. Reports
+contain paths and statuses, not file contents. Do not copy undeclared inputs or
+assume preparation rewrites dotenv values. Follow principles 5 and 6.
+
+### FG-002: Worktree-specific environment values
+
+Fugato does not rewrite copied dotenv files or classify arbitrary variable names. Review addresses, ports, namespaces, and shared resources explicitly. Use Compose service DNS for internal connections and supported Fugato port variables for host commands. Restart/rebuild when the application's configuration lifecycle requires it. Follow principles 7 and 9–18.
+
+### FG-003: Compose secrets and build credentials
+
+The validator rejects service `secrets`/`configs` and build secrets/SSH. This is a Fugato compatibility limitation, not an application defect. Preserve required credential handling and report the blocker. Ordinary dotenv/environment configuration is a different mechanism; use it only when appropriate for the application, not as an automatic downgrade. Follow principle 8.
+
+### FG-004: Retained data and disk cleanup
+
+`fugato down` retains registration and data. `fugato destroy --worktree PATH`
+removes the runtime's containers, networks, and registration; add `--volumes`
+only to permanently delete its owned named volumes and native `FUGATO_DATA_DIR`.
+Use `--runtime RUNTIME_ID` from `fugato ls` after a worktree disappears or its
+configuration breaks. Ownership checks still apply, and failures retain the
+registry entry for a deliberate retry. Arbitrary host files, source worktrees,
+images, and build cache remain. See the [resource guide](local-resources.md).
+Images/cache may be shared with other environments; broad Docker pruning is not
+runtime-scoped cleanup. The CLI provides this operation; MCP does not expose a
+destructive cleanup tool.
+
+### FG-005: Agent onboarding and skill distribution
+
+MCP can prepare declared local files before registration. Register an environment
+through the CLI or editor, then MCP can start and stop it by runtime ID. Install the repository's portable skill into the selected agent with the
+[README installation commands](../../README.md#install-for-your-agent). Keep its
+bundled `references/` directory with `SKILL.md`; skill installation and MCP
+registration are separate steps. See the [MCP contract](../reference/mcp.md)
+for exact tools and command-policy requirements.
+
+Implementation references: [environment configuration](../reference/environment.md), [project validation](../reference/project.md), [local resources](local-resources.md), [Compose execution and validation](../../packages/fugato/internal/fugato/compose.go), and [configuration validation](../../packages/fugato/internal/fugato/config.go).

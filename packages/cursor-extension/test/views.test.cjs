@@ -1,0 +1,30 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const Module=require('node:module');
+
+test('native views group missing worktrees, dim IDs and internal ports, and preserve unchanged snapshots', t=>{
+  const disposable={dispose(){}};
+  const vscode={TreeItem:class{constructor(label,collapsibleState){Object.assign(this,{label,collapsibleState});}},ThemeIcon:class{constructor(id){this.id=id;}},TreeItemCollapsibleState:{None:0,Collapsed:1,Expanded:2},EventEmitter:class{fires=0;event=()=>disposable;fire(){this.fires++;}dispose(){}},workspace:{workspaceFolders:[{uri:{fsPath:'/repo/app'}}]}};
+  const load=Module._load;Module._load=function(name,...args){return name==='vscode'?vscode:load.call(this,name,...args);};
+  t.after(()=>Module._load=load);
+  const {Tree,Details,Row}=require('../out/views');
+  const tree=new Tree();
+  const runtime={id:'aaaaaaaaaaaaaaaa',repository:'/repo/.git',worktree:'/repo',project_dir:'/repo/examples/example_1',observed:'stopped',desired:'stopped',commit:'abc'};
+  tree.rows=[{repository:{repository:'/repo/.git',worktrees:[{path:'/gone',branch:'removed',missing:true},{path:'/repo',branch:'main',missing:false}],truncated:false},runtimes:[runtime]}];
+  const repository=tree.getChildren()[0];
+  assert.equal(repository.children[0].description,'Current folder · stopped · /repo');
+  assert.equal(repository.children[0].children,undefined,'A single environment is managed directly from its worktree');
+  tree.rows[0].runtimes.push({...runtime,id:'bbbbbbbbbbbbbbbb',project_dir:'/repo/worker'});
+  assert.equal(tree.getChildren()[0].children[0].children[0].label,'example_1');
+  assert.equal(tree.getChildren()[0].children[0].children[0].description,'aaaaaaaaaaaaaaaa · stopped');
+  assert.equal(repository.children[1].label,'Unavailable worktrees');
+  assert.equal(repository.children[1].collapsibleState,vscode.TreeItemCollapsibleState.Collapsed);
+  assert.equal(repository.children[1].children[0].description,'Git checkout unavailable');
+  tree.refresh();tree.refresh();assert.equal(tree.emitter.fires,1);
+  runtime.updated_at='metadata';tree.refresh();assert.equal(tree.emitter.fires,1);
+  const details=new Details(),internal=new Row('Internal');internal.description='5432/tcp';
+  details.rows=[new Row('Services & ports',undefined,undefined,[new Row('db',undefined,undefined,[internal])])];
+  assert.equal(details.getChildren(details.rows[0])[0].label,'db');
+  details.refresh();details.refresh();assert.equal(details.emitter.fires,1);
+  internal.description='5433/tcp';details.refresh();assert.equal(details.emitter.fires,2,'Nested port changes update the selected environment');
+});

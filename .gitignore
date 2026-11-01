@@ -1,0 +1,38 @@
+# Dependencies, build output, and language caches.
+node_modules/
+dist/
+coverage/
+__pycache__/
+*.py[cod]
+/bin/
+/fugato
+/fugato-mcp
+/packages/fugato/fugato
+/packages/fugato/fugato-mcp
+
+# Generated test reports and local diagnostic output.
+/artifacts/
+/test-results/
+/playwright-report/
+/coverage.out
+/coverage.html
+*.log
+*.log.*
+/runtime-logs/
+
+# Packaged executables and extensions; retain their source scripts.
+fugato-*.tar.gz
+fugato-*.tar.gz.sha256
+fugato_*.tar.gz
+fugato_*.tar.gz.sha256
+*.vsix
+
+# Local maintainer notes and operating-system metadata.
+/.local-backlog/
+.DS_Store
+
+# Local environment values; commit only the example templates.
+.env
+.env.*
+*.env
+!.env.example

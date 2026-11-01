@@ -1,0 +1,469 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fugato environment configuration",
+  "description": "The initial version 1 environment contract. Doctor validates references, paths, and runtime requirements.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "compose": {
+      "type": "string"
+    },
+    "prepare": {
+      "type": "object",
+      "description": "Explicit local files and directories to prepare in another worktree.",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "description": "Project-relative file or directory paths copied recursively from an explicitly selected source project.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "required": {
+                "type": "boolean",
+                "default": true
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "description": "Additional slash-relative glob patterns excluded from preparation. Explicit exclusions override allow.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "allow": {
+          "type": "array",
+          "description": "Slash-relative paths or glob patterns allowed through default dependency/generated-output exclusions only. The .git component remains prohibited.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "start": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+          },
+          "uniqueItems": true
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "service": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+          },
+          "command": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "protocol": {
+            "enum": [
+              "http",
+              "https",
+              "tcp",
+              "udp"
+            ]
+          },
+          "browser": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "port",
+          "protocol"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "service"
+            ],
+            "type": "object",
+            "properties": {
+              "service": {}
+            }
+          },
+          {
+            "required": [
+              "command"
+            ],
+            "type": "object",
+            "properties": {
+              "command": {}
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "service"
+              ],
+              "type": "object",
+              "properties": {
+                "service": {}
+              }
+            },
+            "then": {
+              "properties": {
+                "port": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "port"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "browser"
+              ],
+              "properties": {
+                "browser": {
+                  "const": true
+                }
+              },
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "protocol": {
+                  "enum": [
+                    "http",
+                    "https"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "command"
+              ],
+              "type": "object",
+              "properties": {
+                "command": {}
+              }
+            },
+            "then": {
+              "properties": {
+                "protocol": {
+                  "enum": [
+                    "http",
+                    "https",
+                    "tcp"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "patternProperties": {
+            "^(?![a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$)": {
+              "not": {
+                "required": [
+                  "browser",
+                  "protocol"
+                ],
+                "properties": {
+                  "browser": {
+                    "const": true
+                  },
+                  "protocol": {
+                    "const": "http"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "commands": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "service",
+              "task",
+              "interactive"
+            ]
+          },
+          "host": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cwd": {
+                "type": "string"
+              },
+              "argv": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "propertyNames": {
+                  "allOf": [
+                    {
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    },
+                    {
+                      "not": {
+                        "pattern": "^FUGATO_"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "argv"
+            ]
+          },
+          "run": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "service": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+              },
+              "argv": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "service",
+              "argv"
+            ]
+          },
+          "exec": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "service": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+              },
+              "argv": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "service",
+              "argv"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "host"
+            ],
+            "type": "object",
+            "properties": {
+              "host": {}
+            }
+          },
+          {
+            "required": [
+              "run"
+            ],
+            "type": "object",
+            "properties": {
+              "run": {}
+            }
+          },
+          {
+            "required": [
+              "exec"
+            ],
+            "type": "object",
+            "properties": {
+              "exec": {}
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "service"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "host"
+              ],
+              "type": "object",
+              "properties": {
+                "host": {}
+              }
+            }
+          }
+        ]
+      }
+    },
+    "checks": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "http": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "endpoint": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/"
+              }
+            },
+            "required": [
+              "endpoint",
+              "path"
+            ]
+          },
+          "command": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "http"
+            ],
+            "type": "object",
+            "properties": {
+              "http": {}
+            }
+          },
+          {
+            "required": [
+              "command"
+            ],
+            "type": "object",
+            "properties": {
+              "command": {}
+            }
+          }
+        ]
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "service": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+        },
+        "profile": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$"
+        }
+      },
+      "dependencies": {
+        "profile": [
+          "service"
+        ]
+      },
+      "required": [
+        "service"
+      ]
+    }
+  },
+  "required": [
+    "version"
+  ]
+}
