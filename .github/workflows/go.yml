@@ -2,41 +2,9 @@ name: Go
 
 on:
   push:
-    paths:
-      - .github/workflows/go.yml
-      - packages/fugato/**
-      - scripts/package-local.sh
-      - docs/guides/install.md
-      - docs/guides/application-compatibility.md
-      - docs/guides/preparation.md
-      - docs/guides/local-resources.md
-      - docs/reference/environment.md
-      - docs/reference/mcp.md
-      - skills/**
-      - scripts/sync-skill-references.py
-      - scripts/generate-notices.py
-      - third_party/**
-      - THIRD_PARTY_NOTICES.md
-      - LICENSE
-      - NOTICE
+    paths: ['.github/workflows/go.yml', 'Makefile', 'requirements-test.txt', 'pyproject.toml', 'packages/fugato/**', 'tools/**', 'tests/tooling/**', 'docs/**', 'skills/**', 'third_party/**', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'NOTICE']
   pull_request:
-    paths:
-      - .github/workflows/go.yml
-      - packages/fugato/**
-      - scripts/package-local.sh
-      - docs/guides/install.md
-      - docs/guides/application-compatibility.md
-      - docs/guides/preparation.md
-      - docs/guides/local-resources.md
-      - docs/reference/environment.md
-      - docs/reference/mcp.md
-      - skills/**
-      - scripts/sync-skill-references.py
-      - scripts/generate-notices.py
-      - third_party/**
-      - THIRD_PARTY_NOTICES.md
-      - LICENSE
-      - NOTICE
+    paths: ['.github/workflows/go.yml', 'Makefile', 'requirements-test.txt', 'pyproject.toml', 'packages/fugato/**', 'tools/**', 'tests/tooling/**', 'docs/**', 'skills/**', 'third_party/**', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'NOTICE']
   workflow_dispatch:
 
 permissions:
@@ -46,41 +14,20 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: packages/fugato
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
-      - name: Check portable skill references
-        working-directory: .
-        run: python3 scripts/sync-skill-references.py --check
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: packages/fugato/go.mod
           cache-dependency-path: packages/fugato/go.sum
-      - name: Check distribution notices
-        working-directory: .
-        run: python3 scripts/generate-notices.py --check
-      - name: Format
-        run: test -z "$(gofmt -l cmd internal)"
-      - name: Race tests
-        run: go test -race ./...
-      - name: Vet
-        run: go vet ./...
-      - name: Package local targets
-        working-directory: .
-        run: |
-          mkdir -p "$RUNNER_TEMP/fugato-packages"
-          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
-            ./scripts/package-local.sh "${target%/*}" "${target#*/}" "$RUNNER_TEMP/fugato-packages"
-          done
-          cd "$RUNNER_TEMP/fugato-packages"
-          sha256sum -c ./*.sha256
+      - run: make test-deps
+      - run: make check
       - name: Fuzz preview Host parser
+        working-directory: packages/fugato
         run: go test ./internal/fugato -run '^$' -fuzz '^FuzzPreviewHost$' -fuzztime=5s -parallel=2
       - name: Fuzz project configuration
+        working-directory: packages/fugato
         run: go test ./internal/fugato -run '^$' -fuzz '^FuzzProjectConfig$' -fuzztime=5s -parallel=2
-      - name: Known vulnerabilities
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+      - run: make vulnerabilities

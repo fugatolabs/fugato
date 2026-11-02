@@ -2,9 +2,9 @@ name: Homebrew
 
 on:
   push:
-    paths: ['.github/workflows/homebrew.yml', '.github/workflows/release.yml', 'scripts/*homebrew*.py', 'scripts/build-release.sh']
+    paths: ['.github/workflows/homebrew.yml', '.github/workflows/release.yml', 'tools/release/**', '.goreleaser.yaml']
   pull_request:
-    paths: ['.github/workflows/homebrew.yml', '.github/workflows/release.yml', 'scripts/*homebrew*.py', 'scripts/build-release.sh']
+    paths: ['.github/workflows/homebrew.yml', '.github/workflows/release.yml', 'tools/release/**', '.goreleaser.yaml']
   release:
     types: [published]
   workflow_dispatch:
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - run: python3 scripts/test-homebrew-formula.py
+      - run: python3 tools/release/test_homebrew.py
 
   prepare:
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
@@ -72,7 +72,7 @@ jobs:
           mkdir -p release formula
           gh release download "$RELEASE_TAG" --repo fugatolabs/fugato --dir release \
             --pattern checksums.txt --pattern "fugato_${RELEASE_TAG#v}_*.tar.gz"
-          python3 scripts/generate-homebrew-formula.py release --version "${RELEASE_TAG#v}" > formula/fugato.rb
+          python3 tools/release/homebrew.py release --version "${RELEASE_TAG#v}" > formula/fugato.rb
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: homebrew-formula
@@ -111,7 +111,7 @@ jobs:
           brew audit --strict fugatolabs/tap/fugato
           test -f "$(brew --prefix fugato)/share/fugato/NOTICE"
           test -f "$(brew --prefix fugato)/share/fugato/skills/fugato-workflow/SKILL.md"
-          test -f "$(brew --prefix fugato)/share/fugato/setup-agent.mjs"
+          fugato setup --help
 
   publish:
     needs: [prepare, install]

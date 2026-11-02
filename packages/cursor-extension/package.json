@@ -4,6 +4,11 @@
   "description": "Manage local worktree environments and open previews in your browser.",
   "version": "0.0.1",
   "publisher": "fugato-local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fugatolabs/fugato.git",
+    "directory": "packages/cursor-extension"
+  },
   "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.116.0",

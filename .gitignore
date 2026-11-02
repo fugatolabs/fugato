@@ -3,6 +3,9 @@ node_modules/
 dist/
 coverage/
 __pycache__/
+/.venv/
+/.pytest_cache/
+/.release/
 *.py[cod]
 /bin/
 /fugato

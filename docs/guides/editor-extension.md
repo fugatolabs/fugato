@@ -29,10 +29,11 @@ The extension connects to the local daemon and uses the configured Fugato state 
 
 ## Install a local VSIX
 
-When working from this checkout, `./scripts/install-local.sh` builds and installs
-the VSIX, sets the Cursor user settings, and registers the separate Fugato MCP
-server. See the [install guide](install.md). The manual VSIX steps below remain
-available when installing an artifact from CI.
+From this checkout, `make install-dev` installs the binaries and
+`make extension-install` builds and installs the Cursor VSIX. Set the extension's
+user settings explicitly when needed. Agent MCP setup is separate:
+`fugato setup --agent cursor --project /path/to/project`. See the
+[install guide](install.md).
 
 The extension is distributed for local evaluation as a VSIX artifact from the **Extension** workflow. Open a successful workflow run, download its Fugato VSIX artifact, and extract it. The workflow does not publish to an extension marketplace.
 

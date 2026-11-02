@@ -1,0 +1,65 @@
+version: 2
+project_name: fugato
+
+before:
+  hooks:
+    - make release-prepare
+
+builds:
+  - id: cli
+    dir: packages/fugato
+    main: ./cmd/fugato
+    binary: fugato
+    env: [CGO_ENABLED=0]
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -X github.com/fugatolabs/fugato/packages/fugato/internal/version.Commit={{ .FullCommit }}{{ if .IsSnapshot }}-snapshot{{ end }}
+  - id: mcp
+    dir: packages/fugato
+    main: ./cmd/fugato-mcp
+    binary: fugato-mcp
+    env: [CGO_ENABLED=0]
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -X github.com/fugatolabs/fugato/packages/fugato/internal/version.Commit={{ .FullCommit }}{{ if .IsSnapshot }}-snapshot{{ end }}
+
+archives:
+  - id: binaries
+    ids: [cli, mcp]
+    formats: [tar.gz]
+    name_template: fugato_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    wrap_in_directory: true
+    files:
+      - LICENSE
+      - NOTICE
+      - THIRD_PARTY_NOTICES.md
+      - third_party/**/*
+      - skills/fugato-workflow/*
+      - src: .release/INSTALL.md
+        strip_parent: true
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+  extra_files:
+    - glob: .release/install.sh
+    - glob: .release/docs.json
+    - glob: .release/*.vsix
+
+snapshot:
+  version_template: '{{ .Env.FUGATO_VERSION }}'
+
+changelog:
+  disable: true
+
+release:
+  draft: true
+  prerelease: true
+  extra_files:
+    - glob: .release/install.sh
+    - glob: .release/docs.json
+    - glob: .release/*.vsix

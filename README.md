@@ -27,15 +27,15 @@ connection setup.
 ## Install for your agent
 
 Use the workflow skill and bundled MCP server together. After installing the
-[binaries](docs/guides/install.md), run the setup helper in your application's
-project directory (Node.js 22.20+):
+[binaries](docs/guides/install.md), run the setup command in your application's
+project directory:
 
 ```sh
-node "$HOME/.local/share/fugato/0.0.1/setup-agent.mjs" --agent codex --project .
+fugato setup --agent codex --project .
 ```
 
 Choose `codex`, `claude-code`, `cursor`, `github-copilot` (VS Code), or
-`gemini-cli`. The helper installs the complete skill, adds persistent project
+`gemini-cli`. The command installs the complete skill, adds persistent project
 guidance, and configures the local MCP launcher. It preserves unrelated settings
 and stops on conflicts. See [agent setup](docs/guides/agent-setup.md) for the
 files each profile uses, source/archive paths, and verification.
@@ -53,7 +53,7 @@ skill. The version-pinned skill source is
 `https://github.com/fugatolabs/fugato/tree/v0.0.1/skills/fugato-workflow`.
 A local checkout's `skills/fugato-workflow` directory also works as the source.
 The skills CLI installs instructions and references; MCP and persistent project
-guidance need separate setup unless you use Fugato's combined helper.
+guidance need separate setup unless you use Fugato's setup command.
 
 ## How it works
 
@@ -95,10 +95,10 @@ The [examples index](examples/README.md) contains:
 - [Node.js + PostgreSQL](examples/example_2/README.md): a smaller Compose reference.
 - [Native app](examples/native-app/README.md): package scripts, two previews, a worker, tasks, and an interactive terminal.
 
-For a complete local Cursor setup from an authorized source checkout, run
-`./scripts/install-local.sh --project /absolute/path/to/your-project`.
-This builds the binaries and extension and configures Cursor MCP. See the
-[installation guide](docs/guides/install.md) for prerequisites and options.
+From a source checkout, run `make install-dev`, then
+`fugato setup --agent cursor --project /absolute/path/to/your-project`.
+Install the optional extension separately with `make extension-install`. See the
+[installation guide](docs/guides/install.md) for prerequisites.
 For building and contributing, start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Stopping an environment does not preserve a container's writable layer.
@@ -112,6 +112,9 @@ See [resources and cleanup](docs/guides/local-resources.md) before removing data
 - `docs/guides/`: installation, agent setup, and usage guides.
 - `docs/reference/`: configuration and interface contracts.
 - `skills/fugato-workflow/`: portable agent instructions and bundled references.
+- `install/`: download bootstrap.
+- `tools/`: documentation, license, and release maintenance.
+- `tests/acceptance/`: shared end-to-end scenarios; `Makefile` exposes developer tasks.
 
 ## License
 

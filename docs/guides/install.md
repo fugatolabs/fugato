@@ -84,30 +84,35 @@ inherit your shell PATH. See the [editor guide](editor-extension.md) and
 running daemon and its local connection settings; CLI installation alone does
 not register it with an agent.
 
-## Set up this checkout for Cursor
+## Install from this checkout
 
-On a macOS or Linux machine with the Go toolchain from
-[`go.mod`](../../packages/fugato/go.mod), Node.js 22+, npm, and the `cursor` command,
-run this from the source checkout:
+Use the Go toolchain from [`go.mod`](../../packages/fugato/go.mod) and run:
 
 ```sh
-./scripts/install-local.sh --project /absolute/path/to/your-project
+make install-dev
+fugato setup --agent cursor --project /absolute/path/to/your-project
 ```
 
-The script builds `fugato` and `fugato-mcp` into `~/.local/bin`, installs the
-Cursor VSIX, sets the extension's user-level connection settings, and registers
-the Fugato MCP server in `~/.cursor/mcp.json` without removing other servers.
-Its MCP launcher starts the daemon on demand before opening the stdio server.
-The script also starts the daemon once and prints a project-setup prompt to paste
-into a local agent. The prompt asks the agent to inspect manifests, Compose, and development documentation,
-prepare configuration, and validate it with `doctor`.
-Run the script again to update the local binaries and extension from this checkout.
+`make install-dev` installs both binaries into `~/.local/bin`. Override the
+prefix with `make install-dev PREFIX=/your/prefix`. Add its `bin` directory to
+PATH before running setup. Setup writes project-scoped agent configuration; it
+does not modify global Cursor settings or start the daemon or workloads.
 
-The daemon is part of the `fugato` binary. It does not need a Homebrew service
-or a macOS LaunchAgent: the CLI, Cursor extension, and installed MCP launcher
-can start it when needed. Use `--skip-extension` if you only want the CLI and
-MCP registration, or `--no-start` if you do not want the installer to start the
-daemon immediately. Run `./scripts/install-local.sh --help` for other options.
+To build and install the optional Cursor extension, use Node.js 22+, npm, and
+the `cursor` command:
+
+```sh
+make extension-install
+```
+
+Configure the extension's user-level `fugato.executablePath` if the editor cannot
+find the installed CLI. Non-default daemon state directories and ports also
+need matching extension user settings. See the [editor guide](editor-extension.md).
+The old source installer has been replaced by these explicit steps; existing
+global Cursor MCP entries are left for you to review rather than silently changed.
+
+The daemon is part of the `fugato` binary. The CLI, extension, and generated MCP
+launcher can start it on demand; no always-on system service is required.
 
 `fugato init` writes the initial `version: 1` configuration without overwriting
 an existing file. Use repeatable `--service NAME` flags to select Compose startup
@@ -128,22 +133,23 @@ the CLI:
 > selected startup plan and remaining prerequisites. If I requested runtime
 > verification, run `fugato up` and then a configured `fugato check NAME`.
 
-The installer prints a setup prompt for manual use; installation does not make
-an agent infer project intent or run workloads.
+Use the [agent quickstart](agent-quickstart.md) to describe project intent.
+Installation and agent connection do not start application workloads.
 
 ## Install a local archive
 
 Use the Go toolchain from [`go.mod`](../../packages/fugato/go.mod) to build from
-this source checkout. For example, create a Linux ARM64 archive:
+this source checkout and GoReleaser v2.19.0. Assemble the four platform archives:
 
 ```sh
-./scripts/package-local.sh linux arm64 /tmp/fugato-packages
+make release-snapshot
+cd dist
 ```
 
 Copy the matching `fugato_0.0.1_OS_ARCH.tar.gz` to the target machine, then install both executables into a directory on your `PATH`:
 
 ```sh
-sha256sum -c fugato_0.0.1_linux_arm64.tar.gz.sha256
+grep '  fugato_0.0.1_linux_arm64.tar.gz$' checksums.txt | sha256sum -c -
 tar -xzf fugato_0.0.1_linux_arm64.tar.gz
 mkdir -p "$HOME/.local/bin"
 install -m 755 fugato_0.0.1_linux_arm64/fugato fugato_0.0.1_linux_arm64/fugato-mcp "$HOME/.local/bin/"
@@ -154,7 +160,10 @@ cp -R fugato_0.0.1_linux_arm64/LICENSE fugato_0.0.1_linux_arm64/NOTICE \
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Use the matching archive name for macOS or AMD64. The accompanying `.sha256` file records the archive checksum; run `sha256sum -c FILE.sha256` on Linux or `shasum -a 256 -c FILE.sha256` on macOS before extracting it.
+Use the matching archive name for macOS or AMD64. The accompanying
+`checksums.txt` records all archive hashes; select the matching filename and
+verify it with `sha256sum -c -` on Linux or `shasum -a 256 -c -` on macOS before
+extracting. The download installer performs this selection and verification for you.
 
 ## Optional CLI walkthrough
 
@@ -209,16 +218,15 @@ schema.
 
 ## Connect your coding agent
 
-Release archives include `setup-agent.mjs` and the complete `skills/fugato-workflow`
-directory alongside both binaries. The release installer copies these support
-files to `~/.local/share/fugato/0.0.1` by default. Use Node.js 22.20+ to run:
+The CLI embeds the complete workflow skill and configures the selected agent:
 
 ```sh
-node "$HOME/.local/share/fugato/0.0.1/setup-agent.mjs" --agent codex --project .
+fugato setup --agent codex --project .
 ```
 
 Run from your application's project directory. Choose `codex`, `claude-code`,
 `cursor`, `github-copilot` (VS Code), or `gemini-cli`. This installs the skill,
-persistent project guidance, and MCP configuration. See [agent setup](agent-setup.md)
-for source/archive installation, custom paths, and connection checks. The
-binaries and MCP launcher do not require Node.js after setup.
+persistent project guidance, and MCP configuration. Add `--dry-run` to inspect
+changes or `--bin-dir /path/to/bin` for a custom installation. See
+[agent setup](agent-setup.md) for conflict handling and connection checks.
+No Node.js installation is required for setup or the MCP launcher.

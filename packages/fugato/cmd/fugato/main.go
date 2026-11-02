@@ -76,6 +76,9 @@ func runTo(args []string, output io.Writer) error {
 	if args[0] == "schema" || args[0] == "example" {
 		return printReference(output, args[0], args[1:])
 	}
+	if args[0] == "setup" {
+		return setupAgent(args[1:], output)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	switch args[0] {

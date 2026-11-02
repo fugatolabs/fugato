@@ -27,7 +27,8 @@ The [GitHub releases page](https://github.com/fugatolabs/fugato/releases)
 provides these archives, the installer, checksum manifest, and optional VSIX.
 
 Each archive contains `fugato` (including its local daemon), `fugato-mcp`,
-the workflow skill, an agent setup helper, installation instructions, and complete license notices. No Go installation is
+the workflow skill, installation instructions, and complete license notices.
+Agent setup is built into the CLI as `fugato setup`. No Go installation is
 required on the target machine. These are build targets; cross-compilation by
 itself does not establish runtime compatibility on every target.
 
@@ -62,32 +63,33 @@ versions and the license files shipped with the binaries.
 
 ## Maintainer release path
 
-Run checks described in [CONTRIBUTING](../CONTRIBUTING.md), then assemble assets
-without uploading them:
+Install the pinned Python test dependencies with `make test-deps`, and use
+`make check` and `make vulnerabilities` before releasing. Install GoReleaser
+v2.19.0, then assemble local snapshots without publishing:
 
 ```sh
-./scripts/build-release.sh /tmp/fugato-0.0.1 --extension
+WITH_EXTENSION=1 make release-snapshot
 ```
 
-This requires the Go toolchain from `go.mod`, Python 3, and Node.js 22+ with npm for the VSIX.
-It checks version consistency and the checked-in dependency notices, builds all
-four targets, packages the VSIX, exports `docs.json` for the website, generates
-`fugato.rb` from the verified archive hashes, and writes checksums for all assets.
-The documentation bundle contains the CLI help,
-configuration schema, bundled examples, and public guides from this release.
-The website verifies its version and checksum before each deployment.
-The output directory must
-be empty. Local builds record a `-dirty` commit marker if tracked files differ
-from HEAD or untracked files exist. Regenerate notices with
-`python3 scripts/generate-notices.py` after changing dependencies or Go versions.
+GoReleaser owns the four-platform build matrix, archive layout and checksum
+manifest. Its checked-in configuration calls `make release-prepare` to verify
+generated skill/license files, match runtime and extension versions, pin
+`install.sh`, and export `docs.json`. Set `WITH_EXTENSION=1` to package the
+optional VSIX; Node.js 22+ and npm are needed only for that extension build.
+Local snapshots may contain uncommitted changes and are not release evidence.
+Inspect `dist/` for archives and staged extras under `.release/`.
 
-The release workflow can be run manually to upload reviewable workflow
-artifacts. Pushing a matching `v0.0.1` tag runs tests, assembles the assets, and
-creates a **draft prerelease**. A maintainer must still review CI and platform
-smoke-test evidence, choose public repository/asset access, and explicitly
-publish the draft. No website, package registry, publisher account, code-signing
-identity, or hosting service is required for GitHub archive/VSIX downloads.
-Neither this document nor the local assembly script publishes anything.
+The documentation bundle contains CLI help, configuration schema, examples,
+and guides from the same source. The website verifies release documentation's
+version and checksum. Use `make notices` after changing dependencies/toolchains,
+and `make skill` after changing canonical skill documentation.
+
+CI runs the same commands. The release workflow assembles the assets, installs
+and tests those exact archives through the acceptance suite, then creates a
+**draft prerelease** only for a matching version tag. A maintainer reviews the
+results and explicitly publishes the draft. A manual workflow run produces
+reviewable artifacts without publishing a release. No task here changes
+repository visibility or deploys the website.
 
 ## Publish the Homebrew tap
 
@@ -122,7 +124,7 @@ The [Homebrew workflow](../.github/workflows/homebrew.yml) downloads the publish
 archives, checks their SHA-256 hashes, and generates the formula. It installs
 the formula from a temporary tap on macOS ARM64, macOS Intel, Linux ARM64, and
 Linux AMD64, runs `brew test` and `brew audit --strict`, and checks the bundled
-skill, setup helper, and notices. Only after all four installations pass does
+skill, native setup command, and notices. Only after all four installations pass does
 it commit `Formula/fugato.rb` to the public tap. Failed checks leave the tap
 unchanged. Generator regression tests also run on relevant pull requests.
 
@@ -141,11 +143,10 @@ Keep release archives immutable so existing formula checksums remain valid.
 
 1. Publish and verify the GitHub release assets first. Keep the four archives
    and their `checksums.txt` together in a local directory.
-2. Use the generated release asset `fugato.rb`, or regenerate it from those
-   exact archives:
+2. Generate a formula from those exact archives:
 
    ```sh
-   python3 scripts/generate-homebrew-formula.py /tmp/fugato-0.0.1 --version 0.0.1
+   python3 tools/release/homebrew.py /tmp/fugato-0.0.1 --version 0.0.1
    ```
 
    The script validates all four archive hashes against the manifest, then
@@ -159,7 +160,7 @@ Keep release archives immutable so existing formula checksums remain valid.
    `brew install fugatolabs/tap/fugato` from a clean machine before publishing
    the website. User-facing installation copy describes the released version.
 
-The formula installs both binaries, the skill, the setup helper, and notices. Docker and project-specific
+The formula installs both binaries, the skill and notices; setup is embedded in the CLI. Docker and project-specific
 tools remain separate requirements; it does not register MCP or an editor
 extension. New releases require an updated formula generated from the newly
 published assets. Users can then update through `brew upgrade`.

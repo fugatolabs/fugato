@@ -1,113 +1,114 @@
-name: Docker acceptance
+name: Acceptance
 
 on:
   push:
-    paths:
-      - .github/workflows/acceptance.yml
-      - packages/fugato/**
-      - examples/example_1/**
-      - examples/example_2/**
-      - scripts/acceptance/**
-      - scripts/acceptance-destroy.sh
-      - scripts/package-local.sh
-      - docs/guides/install.md
+    branches: ['**']
+    paths: ['.github/**', '.goreleaser.yaml', 'Makefile', 'requirements-test.txt', 'pyproject.toml', 'packages/fugato/**', 'examples/**', 'install/**', 'tools/**', 'tests/**', 'skills/**', 'docs/**', 'third_party/**', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'NOTICE']
   pull_request:
-    paths:
-      - .github/workflows/acceptance.yml
-      - packages/fugato/**
-      - examples/example_1/**
-      - examples/example_2/**
-      - scripts/acceptance/**
-      - scripts/acceptance-destroy.sh
-      - scripts/package-local.sh
-      - docs/guides/install.md
+    paths: ['.github/**', '.goreleaser.yaml', 'Makefile', 'requirements-test.txt', 'pyproject.toml', 'packages/fugato/**', 'examples/**', 'install/**', 'tools/**', 'tests/**', 'skills/**', 'docs/**', 'third_party/**', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'NOTICE']
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Existing release assets to validate instead of rebuilding
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
+  package:
+    if: inputs.artifact-name == ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: packages/fugato/go.mod
+          cache-dependency-path: packages/fugato/go.sum
+      - uses: ./.github/actions/setup-goreleaser
+      - run: make release-snapshot
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: fugato-acceptance-assets
+          path: |
+            dist/*.tar.gz
+            dist/checksums.txt
+          if-no-files-found: error
+          retention-days: 5
+
   packaged-environments:
+    needs: package
+    if: ${{ !cancelled() && (needs.package.result == 'success' || needs.package.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        suite: [compose-browser-mcp, next-nest-postgres]
+        suite: ['native or prepare', 'compose or destroy', environments, fullstack]
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: packages/fugato/go.mod
-          cache-dependency-path: packages/fugato/go.sum
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: Check tools and available disk
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ inputs.artifact-name || 'fugato-acceptance-assets' }}
+          path: ${{ runner.temp }}/fugato-packages
+      - name: Verify and install the exact Linux release archive
+        env:
+          ASSETS: ${{ runner.temp }}/fugato-packages
+          INSTALL: ${{ runner.temp }}/fugato-install/bin
         run: |
-          python3 --version
-          go version
-          node --version
-          npm --version
-          docker version
-          docker compose version
-          df -h /
-      - name: Build and install Linux archive
-        run: |
-          ./scripts/package-local.sh linux amd64 "$RUNNER_TEMP/fugato-packages"
-          version=$(sed -n 's/^const Version = "\([^"]*\)"/\1/p' packages/fugato/internal/version/version.go)
-          test -n "$version"
-          package_name="fugato_${version}_linux_amd64"
-          cd "$RUNNER_TEMP/fugato-packages"
-          sha256sum -c "$package_name.tar.gz.sha256"
-          tar -xzf "$package_name.tar.gz"
-          test -s "$package_name/INSTALL.md"
-          test -s "$package_name/LICENSE"
-          test -s "$package_name/THIRD_PARTY_NOTICES.md"
-          mkdir -p "$RUNNER_TEMP/fugato-install/bin"
-          install -m 755 "$package_name/fugato" "$package_name/fugato-mcp" "$RUNNER_TEMP/fugato-install/bin/"
-          test -x "$RUNNER_TEMP/fugato-install/bin/fugato"
-          test -x "$RUNNER_TEMP/fugato-install/bin/fugato-mcp"
-      # The disposable runner keeps no Docker image or npm cache between jobs.
-      # The suite tears down each fixture group before starting the next one.
-      - name: Run packaged preparation CLI and MCP acceptance
-        if: matrix.suite == 'compose-browser-mcp'
-        run: |
-          python3 scripts/acceptance/prepare.py \
-            --binary "$RUNNER_TEMP/fugato-install/bin/fugato" \
-            --mcp-binary "$RUNNER_TEMP/fugato-install/bin/fugato-mcp"
-      - name: Verify runtime destruction and retained-data isolation
-        if: matrix.suite == 'compose-browser-mcp'
-        run: ./scripts/acceptance-destroy.sh "$RUNNER_TEMP/fugato-install/bin/fugato"
-      - name: Run packaged Compose, browser, and MCP acceptance
-        if: matrix.suite == 'compose-browser-mcp'
-        run: |
-          python3 scripts/acceptance/compose.py \
-            --binary "$RUNNER_TEMP/fugato-install/bin/fugato" \
-            --mcp-binary "$RUNNER_TEMP/fugato-install/bin/fugato-mcp" \
-            --artifacts "$RUNNER_TEMP/fugato-acceptance"
-      - name: Run packaged Next, Nest, and PostgreSQL acceptance
-        if: matrix.suite == 'next-nest-postgres'
-        run: |
-          python3 scripts/acceptance/next_nest_postgres.py \
-            --binary "$RUNNER_TEMP/fugato-install/bin/fugato" \
-            --artifacts "$RUNNER_TEMP/fugato-acceptance"
-      - name: Show Docker disk usage
-        if: always()
-        run: docker system df
+          python3 - <<'PY'
+          import hashlib, os, pathlib, re, tarfile
+          assets = pathlib.Path(os.environ['ASSETS'])
+          archives = list(assets.glob('fugato_*_linux_amd64.tar.gz'))
+          if len(archives) != 1:
+              raise SystemExit('Expected exactly one Linux AMD64 archive')
+          archive = archives[0]
+          rows = [line.split() for line in (assets / 'checksums.txt').read_text().splitlines()]
+          hashes = [row[0] for row in rows if len(row) == 2 and row[1] == archive.name]
+          if len(hashes) != 1 or not re.fullmatch('[0-9a-f]{64}', hashes[0]) or hashlib.sha256(archive.read_bytes()).hexdigest() != hashes[0]:
+              raise SystemExit('Missing, ambiguous or incorrect release checksum')
+          with tarfile.open(archive) as tar:
+              tar.extractall(assets / 'unpacked', filter='data')
+          package = assets / 'unpacked' / archive.name.removesuffix('.tar.gz')
+          for name in ['INSTALL.md', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'skills/fugato-workflow/SKILL.md']:
+              if not (package / name).is_file():
+                  raise SystemExit('Missing archive file: ' + name)
+          import shutil
+          install = pathlib.Path(os.environ['INSTALL'])
+          install.mkdir(parents=True)
+          for name in ['fugato', 'fugato-mcp']:
+              shutil.copy2(package / name, install / name)
+              (install / name).chmod(0o755)
+          PY
+      - run: make test-deps
+      - name: Run packaged acceptance scenarios
+        env:
+          SUITE: ${{ matrix.suite }}
+          BINARY: ${{ runner.temp }}/fugato-install/bin/fugato
+          MCP_BINARY: ${{ runner.temp }}/fugato-install/bin/fugato-mcp
+          ARTIFACTS: ${{ runner.temp }}/fugato-acceptance
+        run: make acceptance
       - name: Save bounded failure evidence
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: fugato-acceptance-failure-${{ matrix.suite }}
+          name: acceptance-failure-${{ strategy.job-index }}
           path: |
-            ${{ runner.temp }}/fugato-acceptance/environment.json
-            ${{ runner.temp }}/fugato-acceptance/results.json
-            ${{ runner.temp }}/fugato-acceptance/summary.json
-            ${{ runner.temp }}/fugato-acceptance/commands.log
-            ${{ runner.temp }}/fugato-acceptance/daemon.log
+            ${{ runner.temp }}/fugato-acceptance/**/environment.json
+            ${{ runner.temp }}/fugato-acceptance/**/results.json
+            ${{ runner.temp }}/fugato-acceptance/**/summary.json
+            ${{ runner.temp }}/fugato-acceptance/**/commands.log
+            ${{ runner.temp }}/fugato-acceptance/**/daemon.log
           if-no-files-found: ignore
           retention-days: 5

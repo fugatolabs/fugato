@@ -194,7 +194,7 @@ again with an empty database. Normal `fugato down` retains that database.
 
 ## Automated verification
 
-From the public repository root, `python3 scripts/acceptance/next_nest_postgres.py`
+From the public repository root, `make acceptance SUITE=fullstack`
 tests CRUD, validation, proxy routing, isolated databases and host ports, source
 changes, and restart persistence in two disposable worktrees. This test also
 uses the CLI directly, without MCP or an AI agent.

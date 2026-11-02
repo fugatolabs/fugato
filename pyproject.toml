@@ -1,0 +1,13 @@
+[tool.pytest.ini_options]
+testpaths = ["tests/acceptance", "tests/tooling"]
+addopts = "--strict-markers"
+markers = [
+  "native: native processes, commands, previews and worktree isolation (no Docker)",
+  "prepare: synthetic preparation CLI and authenticated MCP checks (no Docker)",
+  "compose: Compose, browser, MCP, worktree and port scenarios",
+  "environments: mixed native/container and multiple endpoint scenarios",
+  "destroy: scoped destruction, retained data and unrelated resource preservation",
+  "fullstack: complete Next.js, NestJS and PostgreSQL example",
+  "docker: requires Docker Engine and Compose",
+  "mcp: requires the Fugato MCP binary",
+]

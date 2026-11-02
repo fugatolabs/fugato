@@ -3,27 +3,27 @@
 Use the workflow skill and MCP together. The skill describes project setup,
 preparation, verification, and cleanup. MCP gives your agent tools to inspect
 and control registered runtimes. The release archive includes both `fugato`
-and `fugato-mcp`, the setup helper, and the complete skill with references.
+and `fugato-mcp`. The CLI embeds the complete workflow skill with references.
 
 ## Set up a project
 
-Install the binaries and put them on PATH. Use Node.js 22.20 or later for the
-setup helper. From your application's project directory, choose one profile:
+Install the binaries and put them on PATH. From your application's project
+directory, choose one profile:
 
 ```sh
-node "$HOME/.local/share/fugato/0.0.1/setup-agent.mjs" --agent codex --project .
+fugato setup --agent codex --project .
 ```
 
 Replace `codex` with `claude-code`, `cursor`, `github-copilot` (VS Code), or
 `gemini-cli`. Run again for each agent you use. Add `--dry-run` to inspect the
 files that would change. Add `--bin-dir /path/to/bin` for binaries outside PATH.
 
-For an unpacked release, run `node /path/to/release/setup-agent.mjs` with the
-same options. From source, use `node /path/to/fugato/scripts/setup-agent.mjs`.
-For a Homebrew installation containing the setup files, the helper is at
-`$(brew --prefix fugato)/share/fugato/setup-agent.mjs`.
+For an unpacked release, run `/path/to/release/fugato setup` with the same
+options. From source, run `make build`, then `./bin/fugato setup`. Homebrew
+installations use the same `fugato setup` command. No Node.js installation is
+required for agent setup.
 
-The helper performs three steps:
+The command performs three steps:
 
 1. Copies the complete skill into a directory the selected agent discovers.
 2. Adds persistent project instructions that point to the skill for Fugato work.
@@ -34,7 +34,7 @@ It does not start application workloads or change global agent settings.
 Existing unrelated settings are preserved. Conflicting Fugato settings, edited
 skill files, malformed JSON configuration, or symlink targets stop setup before
 writes. JSON configuration must be strict JSON; JSONC comments and trailing
-commas need manual review/conversion. The helper does not repair existing TOML.
+commas need manual review/conversion. The command does not repair existing TOML.
 
 | Agent | Skill directory | Persistent guidance | MCP configuration |
 | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ npx skills list
 
 This installs the skill and references; it does not register MCP or install the
 persistent instruction block above. Use the selected agent's MCP documentation
-with Fugato's [stdio settings](../reference/mcp.md). The setup helper explicitly
+with Fugato's [stdio settings](../reference/mcp.md). The setup command explicitly
 supports the five profiles listed above; other clients need their own adapter.
 
 ## Integration references

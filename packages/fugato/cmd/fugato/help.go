@@ -13,6 +13,7 @@ Usage:
 
 Commands:
   version Print release version and source commit (--version also works)
+  setup   Configure a coding agent's project instructions, skill, and MCP server
   doctor  Check project setup without starting workloads or a daemon
   prepare Copy declared local files into an existing worktree
   projects Discover configured projects and manifest candidates
@@ -36,6 +37,17 @@ Run "fugato help <command>" for command flags. Help never starts the daemon.
 `
 
 var commandHelp = map[string]string{
+	"setup": `Usage: fugato setup --agent NAME [--project PATH] [--bin-dir DIR] [--dry-run] [--json]
+
+Install the bundled workflow skill, persistent project instructions, and local
+MCP configuration. Agents: codex, claude-code, cursor, github-copilot, gemini-cli.
+--project defaults to the current directory. The installed CLI and its sibling
+fugato-mcp are used unless --bin-dir selects a directory containing both binaries.
+--dry-run reports planned files without writing. --json writes one JSON report.
+Unrelated settings and instructions are preserved. Conflicting settings or edited
+skill files require review before setup can proceed. Global settings are unchanged.
+Setup does not start a daemon or workload and does not require Node.js.
+`,
 	"create": `Usage: fugato create [--worktree PATH]
 
 Validate the project and effective Compose configuration, then register a stopped
