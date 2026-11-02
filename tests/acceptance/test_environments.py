@@ -5,74 +5,15 @@ import json
 import time
 import pytest
 
-from .fixtures import SERVER
+from .fixtures import ENVIRONMENT_CASES, ENVIRONMENT_COMPOSE, NATIVE_SERVER, SERVER
 from .harness import check
 
 pytestmark = [pytest.mark.environments, pytest.mark.docker]
 
-COMPOSE = '''services:
-  api:
-    image: node:20-alpine
-    working_dir: /app
-    command: [node, server.js]
-    volumes: ['./server.js:/app/server.js:ro']
-    ports: ['3000:3000']
-  admin:
-    image: node:20-alpine
-    working_dir: /app
-    command: [node, server.js]
-    volumes: ['./server.js:/app/server.js:ro']
-    expose: ['3000']
-  worker:
-    image: node:20-alpine
-    command: [node, -e, 'setInterval(() => console.log("working"), 1000)']
-  tools:
-    image: node:20-alpine
-    profiles: [tools]
-'''
-
-
 def test_environments(acceptance):
     harness = acceptance
-    native = 'const http=require("node:http"); const s=http.createServer(async(q,r)=>{try{r.end(JSON.stringify({native:true,api:await(await fetch(process.env.API_URL)).json()}));}catch(e){r.writeHead(502);r.end(e.message);}}); s.listen(Number(process.env.PORT),"127.0.0.1"); process.on("SIGTERM",()=>s.close());\n'
-    cases = {
-        'no-browser': 'version: 1\nstart:\n  services: [api, worker]\nendpoints: {}\n',
-        'multi-preview': '''version: 1
-start:
-  services: [api, admin]
-endpoints:
-  website: {service: api, port: 3000, protocol: http, browser: true}
-  admin: {service: admin, port: 3000, protocol: http, browser: true}
-checks:
-  ready: {http: {endpoint: website, path: /health}}
-commands:
-  task: {mode: task, run: {service: tools, argv: [node, -e, 'console.log("task-ok")']}}
-  exec: {mode: task, exec: {service: api, argv: [node, -e, 'console.log("exec-ok")']}}
-''',
-        'mixed': '''version: 1
-start:
-  services: [api]
-  commands: [native]
-commands:
-  native:
-mode: service
-host:
-  argv: [node, native.cjs]
-  env: {PORT: '${FUGATO_PORT_native}', API_URL: 'http://127.0.0.1:${FUGATO_PORT_api}/health'}
-endpoints:
-  api: {service: api, port: 3000, protocol: http, browser: false}
-  native: {command: native, port: 0, protocol: http, browser: true}
-''',
-        'rollback': '''version: 1
-start:
-  services: [api]
-  commands: [fail]
-commands:
-  fail: {mode: task, host: {argv: [node, -e, 'process.exit(9)']}}
-'''
-    }
-    for name, config in cases.items():
-        repo = harness.repository(name, {'compose.yaml': COMPOSE, 'server.js': SERVER, 'native.cjs': native, '.fugato.yaml': config})
+    for name, config in ENVIRONMENT_CASES.items():
+        repo = harness.repository(name, {'compose.yaml': ENVIRONMENT_COMPOSE, 'server.js': SERVER, 'native.cjs': NATIVE_SERVER, '.fugato.yaml': config})
         doctor = harness.register_project(repo)
         check(doctor.returncode == 0, f'{name} doctor failed: {doctor.stdout} {doctor.stderr}')
         runtime_id = next(key for key, value in harness.projects.items() if value == repo)
