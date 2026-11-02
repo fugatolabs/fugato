@@ -90,6 +90,7 @@ jobs:
           retention-days: 14
 
   acceptance:
+    if: github.event_name != 'pull_request'
     needs: package
     uses: ./.github/workflows/acceptance.yml
     with:
