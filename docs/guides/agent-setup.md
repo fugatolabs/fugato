@@ -23,12 +23,16 @@ options. From source, run `make build`, then `./bin/fugato setup`. Homebrew
 installations use the same `fugato setup` command. No Node.js installation is
 required for agent setup.
 
-The command performs three steps:
+The command performs four steps:
 
 1. Copies the complete skill into a directory the selected agent discovers.
 2. Adds persistent project instructions that point to the skill for Fugato work.
 3. Adds a project MCP entry and `.fugato-agent/mcp-launch.sh`. The launcher starts
    the local daemon on demand and then executes the MCP binary over stdio.
+4. Adds a managed `.gitignore` block for `.fugato-agent/` and the selected
+   profile's MCP configuration. Running setup for another agent retains the
+   previous profile's exclusions. Portable skills and project instructions
+   remain shareable.
 
 It does not start application workloads or change global agent settings.
 Existing unrelated settings are preserved. Conflicting Fugato settings, edited
@@ -50,8 +54,11 @@ Agent trust settings, tool permissions, disabled skills, and managed policies
 still apply; installation cannot guarantee a model follows every instruction.
 
 MCP settings and the launcher contain absolute machine-specific paths, not
-token values. Review those files before sharing them. Re-run setup for a new
-worktree, machine, or moved checkout; it will report conflicts that need review.
+token values. Their ignore rules do not untrack files already committed to Git.
+Review any tracked MCP settings before sharing changes; setup never removes
+files from Git's index. The `.gitignore` block can be committed for teammates.
+Re-run setup for a new worktree, machine, or moved checkout; it will report
+conflicts that need review.
 The skill and instruction files can be committed for teammates. The launcher
 uses the state directory and API/proxy ports from the setup environment, falling
 back to Fugato's OS defaults. Configure those environment variables before

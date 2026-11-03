@@ -46,6 +46,8 @@ fugato-mcp are used unless --bin-dir selects a directory containing both binarie
 --dry-run reports planned files without writing. --json writes one JSON report.
 Unrelated settings and instructions are preserved. Conflicting settings or edited
 skill files require review before setup can proceed. Global settings are unchanged.
+Adds a managed .gitignore block for the local launcher and selected MCP settings.
+Already tracked files remain tracked; review them before sharing.
 Setup does not start a daemon or workload and does not require Node.js.
 `,
 	"create": `Usage: fugato create [--worktree PATH]

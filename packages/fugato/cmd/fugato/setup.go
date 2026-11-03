@@ -48,7 +48,7 @@ func setupAgent(args []string, output io.Writer) error {
 		_, err := fmt.Fprintln(output, "Dry run: no files written.")
 		return err
 	}
-	_, err = fmt.Fprintln(output, "Restart your agent in this project and review its MCP trust prompt. Verify the fugato-workflow skill and fugato MCP tools are visible.\nSetup does not start a daemon. Connection check (starts the local daemon): /bin/sh '"+escapeShell(result.Launcher)+"' --check\nMCP settings contain machine-specific paths. Re-run setup after moving the project; do not share them unchanged.")
+	_, err = fmt.Fprintln(output, "Restart your agent in this project and review its MCP trust prompt. Verify the fugato-workflow skill and fugato MCP tools are visible.\nSetup does not start a daemon. Connection check (starts the local daemon): /bin/sh '"+escapeShell(result.Launcher)+"' --check\nThe launcher and selected MCP settings are excluded through a managed .gitignore block. Already tracked files remain tracked; review them before sharing.\nMCP settings contain machine-specific paths. Re-run setup after moving the project; do not share them unchanged.")
 	return err
 }
 

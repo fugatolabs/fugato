@@ -139,6 +139,8 @@ func TestSetupRejectsConflictsWithoutPartialInstallation(t *testing.T) {
 		{"unmanaged Cursor rule", "cursor", ".cursor/rules/fugato.mdc", "My rules", "not managed"},
 		{"quoted TOML table", "codex", ".codex/config.toml", "[\"mcp_servers\".\"fugato\"]\ncommand = \"mine\"\n", "review existing MCP TOML"},
 		{"TOML inline servers", "codex", ".codex/config.toml", "mcp_servers = { other = {} }\n", "review existing MCP TOML"},
+		{"incomplete ignore markers", "codex", ".gitignore", ignoreStart + "\n", "malformed Fugato ignore markers"},
+		{"edited ignore block", "codex", ".gitignore", ignoreStart + "\n!/.codex/config.toml\n" + ignoreEnd + "\n", "edited Fugato ignore block"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			options := fixture(t, tt.agent)
@@ -182,6 +184,7 @@ func TestSetupRejectsSymlinksAndNonregularDestinations(t *testing.T) {
 	for _, tt := range []struct{ name, relative string }{
 		{"symlink parent", ".agents"},
 		{"symlink file", ".cursor/mcp.json"},
+		{"symlink ignore file", ".gitignore"},
 		{"directory file", ".cursor/mcp.json"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

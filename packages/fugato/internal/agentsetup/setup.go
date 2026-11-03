@@ -172,6 +172,23 @@ func Setup(options Options) (Result, error) {
 	if err := add(p.config, config, true); err != nil {
 		return result, err
 	}
+	before, _, _, err = readRegular(root, ".gitignore")
+	if err != nil {
+		return result, err
+	}
+	ignore, err := localIgnore(string(before), p.config)
+	if err != nil {
+		return result, err
+	}
+	previous := len(plan)
+	if err := add(".gitignore", []byte(ignore), true); err != nil {
+		return result, err
+	}
+	if len(plan) > previous {
+		// Install exclusions before creating local settings, after every target
+		// has passed validation. A later I/O failure must not expose new files.
+		plan = append([]change{plan[len(plan)-1]}, plan[:len(plan)-1]...)
+	}
 	result = Result{options.Agent, project, []string{}, launcher, options.DryRun}
 	for _, item := range plan {
 		result.Files = append(result.Files, filepath.ToSlash(item.name))
