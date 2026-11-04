@@ -14,7 +14,7 @@
     "rxjs": "7.8.2"
   },
   "devDependencies": {
-    "@nestjs/cli": "12.0.8",
+    "@nestjs/cli": "12.0.11",
     "@types/node": "24.19.0",
     "@types/pg": "8.23.1",
     "typescript": "5.9.3"
