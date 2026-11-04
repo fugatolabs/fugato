@@ -224,7 +224,7 @@
     "@types/vscode": "1.116.0",
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "4.0.0",
-    "typescript": "5.9.2"
+    "typescript": "7.0.2"
   },
   "overrides": {
     "@vscode/vsce": {
