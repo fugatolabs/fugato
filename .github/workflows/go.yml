@@ -4,7 +4,6 @@ on:
   push:
     paths: ['.github/workflows/go.yml', 'Makefile', 'requirements-test.txt', 'pyproject.toml', 'packages/fugato/**', 'tools/**', 'tests/tooling/**', 'docs/**', 'skills/**', 'third_party/**', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'NOTICE']
   pull_request:
-    paths: ['.github/workflows/go.yml', 'Makefile', 'requirements-test.txt', 'pyproject.toml', 'packages/fugato/**', 'tools/**', 'tests/tooling/**', 'docs/**', 'skills/**', 'third_party/**', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'NOTICE']
   workflow_dispatch:
 
 permissions:
@@ -12,6 +11,7 @@ permissions:
 
 jobs:
   checks:
+    name: Go checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

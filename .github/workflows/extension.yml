@@ -9,12 +9,6 @@ on:
       - packages/fugato/internal/fugato/**
       - docs/guides/editor-extension.md
   pull_request:
-    paths:
-      - .github/workflows/extension.yml
-      - packages/cursor-extension/**
-      - packages/fugato/internal/control/**
-      - packages/fugato/internal/fugato/**
-      - docs/guides/editor-extension.md
   workflow_dispatch:
 
 permissions:
@@ -22,6 +16,7 @@ permissions:
 
 jobs:
   build:
+    name: Extension checks
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:

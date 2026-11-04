@@ -76,7 +76,8 @@ manifest. Its checked-in configuration calls `make release-prepare` to verify
 generated skill/license files, match runtime and extension versions, pin
 `install.sh`, and export `docs.json`. Set `WITH_EXTENSION=1` to package the
 optional VSIX; Node.js 22+ and npm are needed only for that extension build.
-Local snapshots may contain uncommitted changes and are not release evidence.
+Both snapshots and tagged release preparation require a clean tracked checkout.
+Snapshots are development artifacts and are not release evidence.
 Inspect `dist/` for archives and staged extras under `.release/`.
 
 The documentation bundle contains CLI help, configuration schema, examples,

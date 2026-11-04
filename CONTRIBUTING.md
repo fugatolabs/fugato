@@ -16,6 +16,10 @@ or reverted first. Untracked or ignored local notes do not become release inputs
 
 ## Local development
 
+The `Go checks`, `Documentation checks`, `Extension checks`, and `Credential scan`
+jobs run on every pull request. Use those names for required status checks when
+enabling branch protection; their PR triggers deliberately have no path filters.
+
 Use the Go toolchain recorded in `packages/fugato/go.mod`. Docker Engine and Compose are needed for Compose workloads and their acceptance tests; the native example uses host Node.js and npm. Build both binaries with `make build` from the repository root; `make install-dev` installs them into `~/.local/bin`. Follow an [example's setup](examples/README.md), then run the binary from that project directory or pass `--worktree` with its path. Install the binary outside the opened workspace when testing the editor extension.
 
 Building the optional Cursor VSIX or using the source-based Cursor installer

@@ -1,7 +1,6 @@
 name: Documentation export
 on:
   pull_request:
-    paths: ['Makefile', 'docs/**', 'tools/docs/**', 'tests/tooling/**', 'packages/fugato/**', 'skills/**', 'packages/cursor-extension/resources/fugato.schema.json', '.github/workflows/docs.yml']
   push:
     branches: [main]
     paths: ['Makefile', 'docs/**', 'tools/docs/**', 'tests/tooling/**', 'packages/fugato/**', 'skills/**', 'packages/cursor-extension/resources/fugato.schema.json', '.github/workflows/docs.yml']
@@ -10,6 +9,7 @@ permissions:
   contents: read
 jobs:
   export:
+    name: Documentation checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
