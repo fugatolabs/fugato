@@ -225,5 +225,10 @@
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "4.0.0",
     "typescript": "5.9.2"
+  },
+  "overrides": {
+    "@vscode/vsce": {
+      "minimatch": "11.0.1"
+    }
   }
 }

@@ -25,6 +25,8 @@ def release_version(root=ROOT):
 
 
 def prepare(root=ROOT, with_extension=False):
+    if subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no'], cwd=root).strip():
+        raise ValueError('Release preparation requires a clean tracked checkout')
     version = release_version(root)
     if os.environ.get('FUGATO_VERSION', version) != version:
         raise ValueError('FUGATO_VERSION differs from the source version')
@@ -41,7 +43,8 @@ def prepare(root=ROOT, with_extension=False):
     (output / 'install.sh').write_text(installer)
     (output / 'install.sh').chmod(0o755)
     shutil.copyfile(root / 'docs/guides/install.md', output / 'INSTALL.md')
-    subprocess.run(['python3', str(root / 'tools/docs/export.py'), '--output', str(output / 'docs.json')], check=True)
+    subprocess.run(['python3', str(root / 'tools/docs/export.py'), '--revision', 'HEAD', '--require-clean',
+                    '--output', str(output / 'docs.json')], check=True)
     if with_extension:
         extension = root / 'packages/cursor-extension'
         for command in (['npm', 'ci'], ['npm', 'audit', '--audit-level=high'], ['npm', 'run', 'package']):

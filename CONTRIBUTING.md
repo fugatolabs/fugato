@@ -1,5 +1,19 @@
 # Contributing
 
+Report vulnerabilities privately as described in [the security policy](SECURITY.md).
+Do not put credentials or sensitive reproduction details in public issues.
+
+Documentation exports include only Git-tracked Markdown under `docs/` (excluding
+`README.md` index pages), plus the explicitly named CLI help, schemas and examples.
+Stage a new public guide before previewing it with `make docs`. Ignored and
+untracked notes are excluded; ignore rules do not make an already tracked file
+private. Symlinks are rejected. Keep private notes outside public documentation.
+
+Local documentation previews read tracked working files and report whether their
+inputs differ from the commit. Release preparation uses `--revision HEAD
+--require-clean`: inputs come from Git blobs and tracked changes must be committed
+or reverted first. Untracked or ignored local notes do not become release inputs.
+
 ## Local development
 
 Use the Go toolchain recorded in `packages/fugato/go.mod`. Docker Engine and Compose are needed for Compose workloads and their acceptance tests; the native example uses host Node.js and npm. Build both binaries with `make build` from the repository root; `make install-dev` installs them into `~/.local/bin`. Follow an [example's setup](examples/README.md), then run the binary from that project directory or pass `--worktree` with its path. Install the binary outside the opened workspace when testing the editor extension.
@@ -9,6 +23,14 @@ requires Node.js 22+ and npm. From `packages/cursor-extension`, run `npm ci`,
 `npm audit --audit-level=high`, `npm run check`, `npm test`, and `npm run package`.
 The Node.js build requirement does not change the prebuilt VSIX's editor
 compatibility or require a separate Node installation for end users.
+
+The example API and extension packager scope a `minimatch` override to their
+respective tooling dependency (`@nestjs/cli` and `@vscode/vsce`). Those upstream
+versions still request vulnerable 10.x releases; 11.0.1 fixes
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+Before changing or removing these overrides, verify Nest build/watch behavior
+and the VSIX file list, since minimatch 11 removes some older APIs. Remove the
+overrides once the upstream tools select a patched version themselves.
 
 Before submitting a Go change, run from `packages/fugato`:
 
