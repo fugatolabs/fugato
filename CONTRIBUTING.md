@@ -28,6 +28,18 @@ requires Node.js 22+ and npm. From `packages/cursor-extension`, run `npm ci`,
 The Node.js build requirement does not change the prebuilt VSIX's editor
 compatibility or require a separate Node installation for end users.
 
+Dependabot checks weekly and groups routine minor/patch updates, with at most
+two version-update PRs per ecosystem. Major upgrades are planned separately;
+the version-update filter does not disable security updates. See the
+[Dependabot option semantics](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#update-types-allow).
+Application Node containers in the examples and acceptance fixtures use Node 24. Keep Node
+type definitions compatible with each component's supported runtime. Update
+`@types/vscode` together with `engines.vscode` and the extension-host test version;
+the Dependabot bound on those types must follow the chosen editor baseline.
+Update example_2's Playwright package, lockfile, and Compose browser-image tag
+together, then run its browser acceptance scenario. Package the VSIX when
+changing the editor toolchain.
+
 The example API and extension packager scope a `minimatch` override to their
 respective tooling dependency (`@nestjs/cli` and `@vscode/vsce`). Those upstream
 versions still request vulnerable 10.x releases; 11.0.1 fixes

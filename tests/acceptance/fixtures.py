@@ -21,7 +21,7 @@ res.end(JSON.stringify({ok:true,path:req.url}));}).listen(3000,'0.0.0.0');
 """
 WEB_ONLY = """services:
   web:
-    image: node:20-alpine
+    image: node:24-alpine
     working_dir: /app
     command: ["node", "server.js"]
     expose: ["3000"]
@@ -30,22 +30,22 @@ WEB_ONLY = """services:
 
 ENVIRONMENT_COMPOSE = '''services:
   api:
-    image: node:20-alpine
+    image: node:24-alpine
     working_dir: /app
     command: [node, server.js]
     volumes: ['./server.js:/app/server.js:ro']
     ports: ['3000:3000']
   admin:
-    image: node:20-alpine
+    image: node:24-alpine
     working_dir: /app
     command: [node, server.js]
     volumes: ['./server.js:/app/server.js:ro']
     expose: ['3000']
   worker:
-    image: node:20-alpine
+    image: node:24-alpine
     command: [node, -e, 'setInterval(() => console.log("working"), 1000)']
   tools:
-    image: node:20-alpine
+    image: node:24-alpine
     profiles: [tools]
 '''
 
