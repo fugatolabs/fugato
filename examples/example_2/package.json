@@ -8,9 +8,9 @@
     "test:browser": "node tests/browser.js"
   },
   "dependencies": {
-    "pg": "8.16.3"
+    "pg": "8.23.1"
   },
   "devDependencies": {
-    "playwright": "1.63.0"
+    "playwright": "1.64.1"
   }
 }

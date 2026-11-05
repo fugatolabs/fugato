@@ -7,17 +7,17 @@ Regenerate when dependencies or the Go toolchain change.
 
 | Component | Version | License summary | Notices |
 | --- | --- | --- | --- |
-| github.com/dustin/go-humanize | v1.0.1 | MIT | [LICENSE](third_party/github.com/dustin/go-humanize/LICENSE) |
+| github.com/dustin/go-humanize | v1.1.0 | MIT | [LICENSE](third_party/github.com/dustin/go-humanize/LICENSE) |
 | github.com/google/uuid | v1.6.0 | BSD-3-Clause | [LICENSE](third_party/github.com/google/uuid/LICENSE) |
 | github.com/mattn/go-isatty | v0.0.24 | MIT | [LICENSE](third_party/github.com/mattn/go-isatty/LICENSE) |
-| github.com/ncruces/go-strftime | v1.0.0 | MIT | [LICENSE](third_party/github.com/ncruces/go-strftime/LICENSE) |
+| github.com/ncruces/go-strftime | v1.1.0 | MIT | [LICENSE](third_party/github.com/ncruces/go-strftime/LICENSE) |
 | github.com/remyoudompheng/bigfft | v0.0.0-20230129092748-24d4a6f8daec | BSD-3-Clause | [LICENSE](third_party/github.com/remyoudompheng/bigfft/LICENSE) |
-| golang.org/x/sys | v0.47.0 | BSD-3-Clause | [LICENSE](third_party/golang.org/x/sys/LICENSE), [PATENTS](third_party/golang.org/x/sys/PATENTS) |
+| golang.org/x/sys | v0.49.0 | BSD-3-Clause | [LICENSE](third_party/golang.org/x/sys/LICENSE), [PATENTS](third_party/golang.org/x/sys/PATENTS) |
 | gopkg.in/yaml.v3 | v3.0.1 | MIT and Apache-2.0 (by file) | [LICENSE](third_party/gopkg.in/yaml.v3/LICENSE), [NOTICE](third_party/gopkg.in/yaml.v3/NOTICE) |
-| modernc.org/libc | v1.75.6 | BSD-3-Clause; embedded notices below | [AUTHORS](third_party/modernc.org/libc/AUTHORS), [LICENSE](third_party/modernc.org/libc/LICENSE), [LICENSE-3RD-PARTY.md](third_party/modernc.org/libc/LICENSE-3RD-PARTY.md) |
+| modernc.org/libc | v1.79.0 | BSD-3-Clause; embedded notices below | [AUTHORS](third_party/modernc.org/libc/AUTHORS), [LICENSE](third_party/modernc.org/libc/LICENSE), [LICENSE-3RD-PARTY.md](third_party/modernc.org/libc/LICENSE-3RD-PARTY.md) |
 | modernc.org/mathutil | v1.7.1 | BSD-3-Clause | [AUTHORS](third_party/modernc.org/mathutil/AUTHORS), [LICENSE](third_party/modernc.org/mathutil/LICENSE) |
 | modernc.org/memory | v1.12.1 | BSD-3-Clause | [AUTHORS](third_party/modernc.org/memory/AUTHORS), [LICENSE](third_party/modernc.org/memory/LICENSE), [LICENSE-GO](third_party/modernc.org/memory/LICENSE-GO), [LICENSE-LOGO](third_party/modernc.org/memory/LICENSE-LOGO), [LICENSE-MMAP-GO](third_party/modernc.org/memory/LICENSE-MMAP-GO) |
-| modernc.org/sqlite | v1.58.0 | BSD-3-Clause; SQLite public domain; sqlite-vec MIT | [AUTHORS](third_party/modernc.org/sqlite/AUTHORS), [LICENSE](third_party/modernc.org/sqlite/LICENSE), [LICENSE-SQLITE](third_party/modernc.org/sqlite/LICENSE-SQLITE), [LICENSE-SQLITE_VEC](third_party/modernc.org/sqlite/LICENSE-SQLITE_VEC) |
+| modernc.org/sqlite | v1.61.1 | BSD-3-Clause; SQLite public domain; sqlite-vec MIT | [AUTHORS](third_party/modernc.org/sqlite/AUTHORS), [LICENSE](third_party/modernc.org/sqlite/LICENSE), [LICENSE-3RD-PARTY.md](third_party/modernc.org/sqlite/LICENSE-3RD-PARTY.md), [LICENSE-SQLITE](third_party/modernc.org/sqlite/LICENSE-SQLITE), [LICENSE-SQLITE_VEC](third_party/modernc.org/sqlite/LICENSE-SQLITE_VEC) |
 | Go runtime and standard library | go1.27.3 | BSD-3-Clause with vendored notices | [LICENSE](third_party/go/LICENSE), vendored notices under `third_party/go/vendor/` |
 
 The optional Cursor VSIX contains only Fugato code, schema, and artwork.
