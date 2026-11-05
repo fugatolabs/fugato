@@ -142,6 +142,14 @@ Keep release archives immutable so existing formula checksums remain valid.
 
 ### Manual fallback
 
+To run the public-download and four-platform install checks without giving CI
+a token that writes to the separate tap, set the source repository variable
+`HOMEBREW_PUBLISH_MODE` to `manual`, then dispatch the Homebrew workflow from
+`main` with the published release tag. The publication job is skipped in this
+mode. After all install jobs pass, a maintainer publishes the verified formula
+using the steps below. Remove the variable and configure a narrowly scoped
+`HOMEBREW_TAP_TOKEN` to enable automatic tap updates for later releases.
+
 1. Publish and verify the GitHub release assets first. Keep the four archives
    and their `checksums.txt` together in a local directory.
 2. Generate a formula from those exact archives:
