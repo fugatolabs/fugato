@@ -2,23 +2,21 @@
 
 ## Supported versions
 
-Fugato is preparing its first public release. Security fixes currently target
-`main`. After releases are published, fixes will target `main` and the latest
-published release; older versions may need to upgrade.
+Security fixes target `main` and the latest published release. Older versions
+may need to upgrade. Version 0.0.1 is a public preview with no stable
+compatibility promise.
 
 ## Reporting a vulnerability
 
 Do not disclose vulnerabilities, credentials, or customer data in public issues,
 pull requests, or discussions.
 
-The intended private reporting route is GitHub's
+Use GitHub's private
 [Report a vulnerability form](https://github.com/fugatolabs/fugato/security/advisories/new).
-It is not active while this repository remains private. Maintainers must enable
-private vulnerability reporting and verify that form before the public launch.
 If the form is unavailable, do not post sensitive details publicly; no alternate
 private contact is currently designated here.
 
-Once private reporting is enabled, include the affected version or commit,
+Include the affected version or commit,
 operating system, expected and actual behavior, impact, and a minimal reproduction
 using synthetic data. Redact tokens, environment files, personal paths, and
 customer content. An exposed credential should also be revoked or rotated with
