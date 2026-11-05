@@ -1,4 +1,6 @@
 version: 2
+# Routine updates stay within the reviewed major versions. `allow.update-types`
+# affects version updates only; security updates remain enabled independently.
 updates:
   - package-ecosystem: gomod
     directory: /packages/fugato
@@ -7,7 +9,10 @@ updates:
       day: monday
       time: "09:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    allow:
+      - dependency-name: "*"
+        update-types: [version-update:semver-minor, version-update:semver-patch]
     groups:
       minor-and-patch:
         patterns: ["*"]
@@ -25,7 +30,15 @@ updates:
       day: monday
       time: "09:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    allow:
+      - dependency-name: "*"
+        update-types: [version-update:semver-minor, version-update:semver-patch]
+    ignore:
+      # The types must match engines.vscode, not the newest editor release.
+      # Revisit this bound when deliberately raising the editor baseline.
+      - dependency-name: "@types/vscode"
+        versions: [">=1.117.0"]
     groups:
       minor-and-patch:
         patterns: ["*"]
@@ -38,7 +51,10 @@ updates:
       day: monday
       time: "09:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    allow:
+      - dependency-name: "*"
+        update-types: [version-update:semver-minor, version-update:semver-patch]
     groups:
       minor-and-patch:
         patterns: ["*"]
@@ -51,7 +67,10 @@ updates:
       day: monday
       time: "09:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    allow:
+      - dependency-name: "*"
+        update-types: [version-update:semver-minor, version-update:semver-patch]
     groups:
       minor-and-patch:
         patterns: ["*"]
@@ -67,7 +86,10 @@ updates:
       day: monday
       time: "09:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    allow:
+      - dependency-name: "*"
+        update-types: [version-update:semver-minor, version-update:semver-patch]
     groups:
       minor-and-patch:
         patterns: ["*"]

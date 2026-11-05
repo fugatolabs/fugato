@@ -218,7 +218,7 @@ def test_web_only_and_monorepo(acceptance):
     check(status >= 400 and "unconfigured" in json.dumps(issue), "browser capability incorrectly advertised")
     harness.mark("web-only exposed port and optional database/browser")
 
-    dockerfile = "FROM node:20-alpine\nWORKDIR /app\nCOPY server.js .\nCMD [\"node\",\"server.js\"]\n"
+    dockerfile = "FROM node:24-alpine\nWORKDIR /app\nCOPY server.js .\nCMD [\"node\",\"server.js\"]\n"
     compose = """services:
   web:
     build: ../src
@@ -251,12 +251,12 @@ def assert_source_ports(harness, path, runtime_id, expected, name):
 def test_ambiguity_and_rejections(acceptance):
     harness = acceptance
     cases = [
-        ("two services", 'services:\n  web:\n    image: node:20-alpine\n    ports: ["3000:3000"]\n  other:\n    image: node:20-alpine\n    ports: ["3001:3001"]\n', {"web", "other"}),
-        ("two ports", 'services:\n  web:\n    image: node:20-alpine\n    ports: ["3000:3000", "3001:3001"]\n', {"web"}),
-        ("no port", 'services:\n  web:\n    image: node:20-alpine\n', {"web"}),
+        ("two services", 'services:\n  web:\n    image: node:24-alpine\n    ports: ["3000:3000"]\n  other:\n    image: node:24-alpine\n    ports: ["3001:3001"]\n', {"web", "other"}),
+        ("two ports", 'services:\n  web:\n    image: node:24-alpine\n    ports: ["3000:3000", "3001:3001"]\n', {"web"}),
+        ("no port", 'services:\n  web:\n    image: node:24-alpine\n', {"web"}),
     ]
     for index, (name, compose, services) in enumerate(cases):
-        compose = compose.replace("image: node:20-alpine\n", "image: node:20-alpine\n    command: ['node', '-e', 'setInterval(()=>{},1000)']\n")
+        compose = compose.replace("image: node:24-alpine\n", "image: node:24-alpine\n    command: ['node', '-e', 'setInterval(()=>{},1000)']\n")
         repo = harness.repository(f"discovery-{index}", {"compose.yaml": compose})
         path = harness.worktree(repo, f"discovery-{index}")
         doctor = harness.register_project(path)
@@ -292,7 +292,7 @@ def test_ambiguity_and_rejections(acceptance):
         ("outside-mount", "expose: ['3000']\n    volumes: ['/etc:/outside:ro']", "COMPOSE_OUTSIDE_WORKTREE", "outside"),
     ]
     for name, service, code, fragment in rejection_cases:
-        compose = "services:\n  web:\n    image: node:20-alpine\n    " + service + "\n"
+        compose = "services:\n  web:\n    image: node:24-alpine\n    " + service + "\n"
         repo = harness.repository(name, {"compose.yaml": compose, ".fugato.yaml": explicit})
         harness.expect_rejected(harness.worktree(repo, name), code, fragment)
     harness.mark("host network, external volume, duplicate ports and outside mount rejected before start")
@@ -306,7 +306,7 @@ def test_range_and_udp(acceptance):
         ("udp", "ports: ['3000:3000', '5353:5353/udp']", {(3000, "tcp"), (5353, "udp")}),
     ]
     for name, publish, expected in cases:
-        compose = ("services:\n  web:\n    image: node:20-alpine\n    working_dir: /app\n"
+        compose = ("services:\n  web:\n    image: node:24-alpine\n    working_dir: /app\n"
                    "    command: ['node', 'server.js']\n    volumes: ['./server.js:/app/server.js:ro']\n    "
                    + publish + "\n")
         repo = harness.repository(name, {"compose.yaml": compose, "server.js": SERVER,

@@ -85,7 +85,7 @@ class Acceptance:
             self.run(["docker", "compose", "version"])
             self.before_containers = set(self.run(["docker", "ps", "-q"]).stdout.split())
             self.before_volumes = set(self.run(["docker", "volume", "ls", "-q"]).stdout.split())
-            for name in ("node:20-alpine", "postgres:17-alpine"):
+            for name in ("node:24-alpine", "postgres:17-alpine"):
                 self.base_images_preexisting[name] = (
                     self.run(["docker", "image", "inspect", name], check_exit=False).returncode == 0)
             self.docker_ready = True
